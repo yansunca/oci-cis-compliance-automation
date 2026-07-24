@@ -16,7 +16,8 @@ fi
 : "${NAME_PREFIX:=cis-auto}"
 : "${TAG:=v1}"
 : "${APPLY:=false}"
-: "${BOOTSTRAP_REPOS:=true}"
+: "${BOOTSTRAP_REPOS:=false}"
+: "${PUSH_IMAGES:=false}"
 
 if [ ! -f terraform.tfvars ]; then
   echo "ERROR: terraform.tfvars is missing. Copy terraform.tfvars.example and fill in tenancy values." >&2
@@ -31,10 +32,18 @@ fi
 $TF_BIN init
 
 if [ "$BOOTSTRAP_REPOS" = "true" ]; then
-  $TF_BIN apply     -target=oci_artifacts_container_repository.controller     -target=oci_artifacts_container_repository.runner     -target=oci_artifacts_container_repository.object_event_loader     -target=oci_artifacts_container_repository.adb_sql_loader
+  $TF_BIN apply \
+    -target=oci_artifacts_container_repository.controller \
+    -target=oci_artifacts_container_repository.runner \
+    -target=oci_artifacts_container_repository.object_event_loader \
+    -target=oci_artifacts_container_repository.adb_sql_loader
 fi
 
-make push REGION_KEY="$REGION_KEY" TENANCY_NAMESPACE="$TENANCY_NAMESPACE" NAME_PREFIX="$NAME_PREFIX" TAG="$TAG"
+if [ "$PUSH_IMAGES" = "true" ]; then
+  make push REGION_KEY="$REGION_KEY" TENANCY_NAMESPACE="$TENANCY_NAMESPACE" NAME_PREFIX="$NAME_PREFIX" TAG="$TAG"
+else
+  echo "Skipping image build/push. Set PUSH_IMAGES=true after OCIR repositories exist."
+fi
 
 if [ "$APPLY" = "true" ]; then
   $TF_BIN apply

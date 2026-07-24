@@ -59,7 +59,32 @@ APPLY=false \
 scripts/deploy_stack.sh
 ```
 
-The script initializes Terraform/OpenTofu, bootstraps the four OCIR repositories, builds and pushes the four images, runs `plan`, and generates `./build/adb-deploy` for the database/APEX handoff. Re-run with `APPLY=true` after reviewing the plan.
+With the defaults above, the script initializes Terraform/OpenTofu, runs `plan`, and generates `./build/adb-deploy`. It does not apply Terraform changes or push images.
+
+For first deployment, create the OCIR repositories explicitly, then build/push images:
+
+```sh
+REGION_KEY=iad \
+TENANCY_NAMESPACE=<object-storage-namespace> \
+NAME_PREFIX=cis-auto \
+TAG=v1 \
+BOOTSTRAP_REPOS=true \
+PUSH_IMAGES=true \
+APPLY=false \
+scripts/deploy_stack.sh
+```
+
+After reviewing the plan, deploy the full stack:
+
+```sh
+REGION_KEY=iad \
+TENANCY_NAMESPACE=<object-storage-namespace> \
+NAME_PREFIX=cis-auto \
+TAG=v1 \
+PUSH_IMAGES=true \
+APPLY=true \
+scripts/deploy_stack.sh
+```
 
 To check for a new stable upstream CIS script release in CI:
 
