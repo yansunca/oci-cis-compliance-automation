@@ -109,6 +109,24 @@ cleanup() {
 }
 trap cleanup EXIT
 
+run_sql_driver() {
+  local driver="$1"
+  local label="$2"
+  local output="$work_dir/${label}.out"
+
+  set +e
+  "$SQL_BIN" -L -cloudconfig "$ADB_WALLET_ZIP" -s /nolog @"$driver" >"$output" 2>&1
+  local sql_status=$?
+  set -e
+
+  cat "$output"
+
+  if [ "$sql_status" -ne 0 ] || grep -Eq 'Connection Failed|Error report|ORA-[0-9]{5}|SP2-[0-9]{4}|PLS-[0-9]{5}' "$output"; then
+    echo "ERROR: SQLcl step '${label}' failed. See output above." >&2
+    exit 1
+  fi
+}
+
 run_sql_file() {
   local sql_file="$1"
   local label="$2"
@@ -122,7 +140,7 @@ connect ${ADB_USER}/"${ADB_PASSWORD}"@${ADB_CONNECT_ALIAS}
 exit success
 SQL
   chmod 600 "$driver"
-  "$SQL_BIN" -cloudconfig "$ADB_WALLET_ZIP" -s /nolog @"$driver"
+  run_sql_driver "$driver" "$label"
 }
 
 run_sql_inline() {
@@ -138,7 +156,7 @@ ${sql_body}
 exit success
 SQL
   chmod 600 "$driver"
-  "$SQL_BIN" -cloudconfig "$ADB_WALLET_ZIP" -s /nolog @"$driver"
+  run_sql_driver "$driver" "$label"
 }
 
 if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
@@ -239,7 +257,7 @@ end;
 exit success
 SQL
   chmod 600 "$import_driver"
-  "$SQL_BIN" -cloudconfig "$ADB_WALLET_ZIP" -s /nolog @"$import_driver"
+  run_sql_driver "$import_driver" "import_apex"
 else
   echo "Skipping APEX import because IMPORT_APEX=$IMPORT_APEX"
 fi
