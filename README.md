@@ -212,7 +212,27 @@ Automated today:
 - `database/migrations/` contains the canonical CIS findings schema, product mapping model, audit artifact views, and APEX support objects.
 - `apex/export/f100_oci_cis_findings_operations_demo.sql` contains the Oracle APEX CIS Findings Operations application export.
 
-Install steps after Terraform creates ADB:
+Cloud Shell usually includes SQLcl as the `sql` command. Check first:
+
+```sh
+which sql
+sql -v
+```
+
+Automated install path after Terraform creates ADB:
+
+```sh
+ADB_WALLET_ZIP=/secure/path/Wallet_CISAUTOMATION.zip \
+ADB_PASSWORD='<adb_admin_password>' \
+ADB_CONNECT_ALIAS=cisautomation_low \
+APEX_WORKSPACE=OCI_CIS_FINDINGS \
+APEX_APP_SCHEMA=ADMIN \
+scripts/deploy_adb_apex.sh
+```
+
+The script builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL.
+
+Manual equivalent:
 
 ```sh
 python3 scripts/build_adb_deploy_package.py --output-dir ./build/adb-deploy
@@ -220,9 +240,7 @@ sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautom
 sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautomation_low' @apex/export/f100_oci_cis_findings_operations_demo.sql
 ```
 
-Some APEX first-time setup can be customer-policy dependent, especially workspace name, workspace admin user, SSO/password policy, and whether APEX admin APIs are allowed. Those can be scripted when the customer approves the workspace/user choices and provides the required ADMIN credentials.
-
-A future helper script can wrap this as `scripts/deploy_adb_apex.sh`: download or use the wallet, run the migration bundle, create/check the APEX workspace, import the APEX app, and print the final APEX URL.
+Some APEX first-time setup can be customer-policy dependent, especially workspace name, workspace admin user, SSO/password policy, and whether APEX admin APIs are allowed. If the customer approves scripted workspace setup, provide a reviewed SQL file with `APEX_WORKSPACE_SETUP_SQL=/path/to/workspace_setup.sql` and the script will run it before importing the app.
 
 ## Trigger a scan
 
