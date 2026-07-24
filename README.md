@@ -1,12 +1,13 @@
 # OCI CIS compliance automation
 
-Code-only deployment repo for an OCI CIS Findings Operations workflow.
+Code-only deployment repo for an OCI CIS Findings Operations workflow. The solution uses Oracle APEX to assist CIS findings operations: scan-run review, product/compartment views, finding drill-down, audit evidence links, and operational status checks.
 
-## Runtime flow
+## CIS reporting workflow
 
 ```mermaid
 flowchart LR
-  S["OCI Resource Scheduler"] --> C["Controller Function"]
+  S["OCI Resource Scheduler"] --> C["Controller Function
+create run and prevent overlap"]
   C --> CI["OCI Container Instance
 real CIS scanner"]
   CI --> O["Object Storage
@@ -15,14 +16,17 @@ real CIS scanner"]
 <run_id>/_SUCCESS"]
   O --> E["Object Storage create event"]
   E --> L["Object event loader Function
-filters _SUCCESS"]
-  L --> SQL["ADB SQL loader Function"]
+process completion marker only"]
+  L --> SQL["ADB SQL loader Function
+normalize native CIS files"]
   SQL --> A["Autonomous Database
-canonical CIS model"]
-  A --> UI["APEX application"]
+canonical CIS findings model"]
+  A --> UI["Oracle APEX CIS Findings Operations UI
+scan runs, product views, finding detail, audit links"]
+  UI --> O
 ```
 
-The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS quickstart and writes the same object layout as the Function-based scanner: `<run_id>/files/*`, `<run_id>/run_ready.json`, and `<run_id>/_SUCCESS`.
+The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS quickstart and writes the same object layout as the Function-based scanner: `<run_id>/files/*`, `<run_id>/run_ready.json`, and `<run_id>/_SUCCESS`. APEX reads the canonical ADB model and links back to the original CIS report files in Object Storage for audit evidence.
 
 ## Contents
 
@@ -31,7 +35,7 @@ The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS 
 - `functions/object-storage-event-loader/` - Function triggered by Object Storage create events; it only proceeds on `_SUCCESS` markers.
 - `functions/adb-sql-loader/` - Function that loads a completed run into ADB.
 - `database/migrations/` - Canonical schema, product mapping, audit views, and APEX support objects.
-- `apex/export/` - APEX application export.
+- `apex/export/` - APEX application export for CIS findings operations, including scan runs, product views, finding detail, and audit evidence links.
 - `scripts/` - Build/load helpers, including the ADB deployment package builder.
 
 ## Automated deploy
