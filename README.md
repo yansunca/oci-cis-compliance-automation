@@ -202,6 +202,28 @@ Run the migrations in `database/migrations/` in filename order, then import `ape
 python3 scripts/build_adb_deploy_package.py --output-dir /private/tmp/oci-cis-adb-deploy
 ```
 
+## ADB and APEX installation
+
+Terraform creates the Autonomous Database, wallet secrets, loader Function configuration, and related IAM. The database schema and APEX application are packaged with the repo so they can be installed after ADB is available.
+
+Automated today:
+
+- `scripts/build_adb_deploy_package.py` generates a single ADB SQL deployment bundle under `./build/adb-deploy`.
+- `database/migrations/` contains the canonical CIS findings schema, product mapping model, audit artifact views, and APEX support objects.
+- `apex/export/f100_oci_cis_findings_operations_demo.sql` contains the Oracle APEX CIS Findings Operations application export.
+
+Install steps after Terraform creates ADB:
+
+```sh
+python3 scripts/build_adb_deploy_package.py --output-dir ./build/adb-deploy
+sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautomation_low' @./build/adb-deploy/phase3_adb_migration_bundle.sql
+sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautomation_low' @apex/export/f100_oci_cis_findings_operations_demo.sql
+```
+
+Some APEX first-time setup can be customer-policy dependent, especially workspace name, workspace admin user, SSO/password policy, and whether APEX admin APIs are allowed. Those can be scripted when the customer approves the workspace/user choices and provides the required ADMIN credentials.
+
+A future helper script can wrap this as `scripts/deploy_adb_apex.sh`: download or use the wallet, run the migration bundle, create/check the APEX workspace, import the APEX app, and print the final APEX URL.
+
 ## Trigger a scan
 
 Scheduled runs use OCI Resource Scheduler. For an on-demand run, invoke the controller Function:
