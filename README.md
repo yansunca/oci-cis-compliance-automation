@@ -40,6 +40,8 @@ The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS 
 
 ## Automated deploy
 
+Prerequisites: Terraform/OpenTofu compatible with Terraform `1.5.7+`, OCI CLI credentials, Docker for image builds, and SQLcl for the ADB/APEX install step.
+
 Create `terraform.tfvars`, then log in to OCIR with Docker for the target region key:
 
 ```sh
