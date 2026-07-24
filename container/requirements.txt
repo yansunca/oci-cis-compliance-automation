@@ -1,0 +1,4 @@
+oci==2.173.0
+pytz
+requests
+xlsxwriter

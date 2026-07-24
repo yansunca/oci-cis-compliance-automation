@@ -1,0 +1,7 @@
+schema_version: 20180708
+name: cis-container-controller
+version: 1.0.0
+runtime: python
+entrypoint: /python/bin/fdk /function/func.py handler
+memory: 512
+timeout: 300

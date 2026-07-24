@@ -1,0 +1,28 @@
+# OCI provider authentication is read from the normal OCI CLI config/profile or Resource Manager.
+tenancy_ocid   = "ocid1.tenancy.oc1..example"
+compartment_id = "ocid1.compartment.oc1..example"
+region         = "us-ashburn-1"
+region_key     = "iad"
+name_prefix                = "cis-auto"
+image_tag                  = "v7"
+ingester_image_tag         = "v13"
+container_shape            = "CI.Standard.A1.Flex"
+existing_private_subnet_id = "ocid1.subnet.oc1..example"
+
+# Required. Use a new, strong password; Terraform marks it sensitive and places
+# it in OCI Vault for the ingestion Function at runtime.
+adb_admin_password = "ReplaceWith-A-Strong-Password1"
+
+adb_db_name                = "CISAUTOMATION"
+adb_ecpu_count             = 2
+adb_data_storage_size_in_tbs = 1
+adb_service_level          = "LOW"
+
+# Optional. Leave commented out to use the subnet's security lists instead.
+# existing_network_security_group_id = "ocid1.networksecuritygroup.oc1..example"
+
+# Sunday 02:00 UTC
+schedule_cron = "0 2 * * 0"
+
+# All is valid; a comma-separated region list reduces the scope and runtime.
+cis_regions = "All"

@@ -1,0 +1,16 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+terraform.tfvars
+terraform.tfvars.json
+.env
+.env.*
+__pycache__/
+*.py[cod]
+Wallet_*/
+ewallet*.pem
+cwallet.sso
+*.jks
+.DS_Store
