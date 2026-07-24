@@ -212,7 +212,7 @@ Automated today:
 - `database/migrations/` contains the canonical CIS findings schema, product mapping model, audit artifact views, and APEX support objects.
 - `apex/export/f100_oci_cis_findings_operations_demo.sql` contains the Oracle APEX CIS Findings Operations application export.
 
-Cloud Shell usually includes SQLcl as the `sql` command. Check first:
+SQLcl is required for the automated install path. Check that the `sql` command is available:
 
 ```sh
 which sql
