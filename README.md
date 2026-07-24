@@ -182,8 +182,20 @@ sql -v
 
 Automated install path after Terraform creates ADB:
 
+First generate a local wallet zip for SQLcl from Cloud Shell or an approved admin host. Use a new wallet password; it does not have to be the ADB admin password.
+
 ```sh
-ADB_WALLET_ZIP=/secure/path/Wallet_CISAUTOMATION.zip \
+oci db autonomous-database generate-wallet \
+  --autonomous-database-id $(terraform output -raw autonomous_database_id) \
+  --password '<new_wallet_password>' \
+  --file ~/Wallet_CISAUTOMATION.zip \
+  --region <region>
+```
+
+Then run the ADB/APEX install:
+
+```sh
+ADB_WALLET_ZIP=~/Wallet_CISAUTOMATION.zip \
 ADB_PASSWORD='<adb_admin_password>' \
 ADB_CONNECT_ALIAS=cisautomation_low \
 APEX_WORKSPACE=OCI_CIS_FINDINGS \
