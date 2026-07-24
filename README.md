@@ -36,7 +36,19 @@ The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS 
 
 ## Automated deploy
 
-Create `terraform.tfvars`, log in to OCIR with Docker, then run:
+Create `terraform.tfvars`, then log in to OCIR with Docker for the target region key:
+
+```sh
+docker login <region-key>.ocir.io
+```
+
+Example for `us-ashburn-1` / `iad`:
+
+```sh
+docker login iad.ocir.io
+```
+
+Then run:
 
 ```sh
 REGION_KEY=iad \
