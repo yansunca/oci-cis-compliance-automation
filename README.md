@@ -193,7 +193,28 @@ scripts/deploy_adb_apex.sh
 
 The script creates or verifies a locked `OCI_CIS_APP` APEX parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL.
 
-If a customer requires manual APEX workspace governance, set `CREATE_APEX_WORKSPACE=false` and provide a reviewed setup file with `APEX_WORKSPACE_SETUP_SQL=/path/to/workspace_setup.sql` before importing the app.
+If a customer requires manual APEX workspace governance, set `CREATE_APEX_WORKSPACE=false`.
+
+In that mode, the customer must prepare APEX before running the install script:
+
+- Create or choose the APEX workspace, for example `OCI_CIS_FINDINGS`.
+- Create or approve the parsing schema, for example `OCI_CIS_APP`.
+- Associate the parsing schema with the workspace.
+- Confirm the install user, usually `ADMIN`, can import an APEX application into that workspace.
+
+If the customer wants the script to create the locked parsing schema but not the workspace, leave `CREATE_APEX_SCHEMA=true` and set only `CREATE_APEX_WORKSPACE=false`:
+
+```sh
+ADB_WALLET_ZIP=/secure/path/Wallet_CISAUTOMATION.zip \
+ADB_PASSWORD='<adb_admin_password>' \
+ADB_CONNECT_ALIAS=cisautomation_low \
+APEX_WORKSPACE=OCI_CIS_FINDINGS \
+APEX_APP_SCHEMA=OCI_CIS_APP \
+CREATE_APEX_WORKSPACE=false \
+scripts/deploy_adb_apex.sh
+```
+
+If the customer also creates the parsing schema separately, set both `CREATE_APEX_SCHEMA=false` and `CREATE_APEX_WORKSPACE=false`.
 
 Manual equivalent:
 
