@@ -1,0 +1,19 @@
+schema_version: 20180708
+name: oci-cis-findings-adb-sql-loader-demo
+version: 0.1.2
+runtime: docker
+memory: 2048
+timeout: 300
+config:
+  OCI_CIS_OBJECT_BUCKET: oci-cis-findings-demo
+  OCI_CIS_TENANCY_ID: ocid1.tenancy.oc1..example
+  OCI_CIS_SCANNER_VERSION: "3.3.0"
+  OCI_CIS_BENCHMARK_VERSION: "3.0.0"
+  OCI_CIS_REQUESTED_REGIONS: us-ashburn-1
+  OCI_CIS_ADB_USER: ADMIN
+  OCI_CIS_ADB_CONNECT_ALIAS: cisfindatp_low
+  OCI_CIS_ADB_PASSWORD_SECRET_OCID: ""
+  OCI_CIS_ADB_WALLET_PASSWORD_SECRET_OCID: ""
+  OCI_CIS_ADB_WALLET_BUCKET: oci-cis-findings-demo
+  OCI_CIS_ADB_WALLET_OBJECT: adb-wallet/Wallet_CISFINDATP.zip
+  OCI_CIS_SQL_EXECUTOR: oracledb

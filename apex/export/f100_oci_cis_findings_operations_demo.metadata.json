@@ -1,0 +1,53 @@
+{
+  "applicationId": 100,
+  "applicationName": "OCI CIS Findings Operations",
+  "workspace": "OCI_CIS_FINDINGS",
+  "owner": "OCI_CIS_APP",
+  "exportFile": "f100_oci_cis_findings_operations_demo.sql",
+  "sha256": "e86365dc8e9d3f32f9933c61be3106194e664af402aef2dfaa3ae970a7509597",
+  "bytes": 134751,
+  "exportedAt": "2026-07-18",
+  "pages": [
+    {
+      "pageId": 5,
+      "name": "Operational Summary",
+      "source": "ADMIN.V_CIS_DASHBOARD_METRIC_CARDS"
+    },
+    {
+      "pageId": 10,
+      "name": "Findings Work Queue",
+      "source": "ADMIN.V_CIS_APEX_WORK_QUEUE"
+    },
+    {
+      "pageId": 20,
+      "name": "Finding Detail",
+      "source": "ADMIN.V_CIS_APEX_FINDING_DETAIL"
+    },
+    {
+      "pageId": 30,
+      "name": "Product Scorecard",
+      "source": "ADMIN.V_CIS_PRODUCT_SCORECARD"
+    },
+    {
+      "pageId": 40,
+      "name": "Mapping Quality",
+      "source": "ADMIN.V_CIS_MAPPING_QUALITY_DETAIL"
+    },
+    {
+      "pageId": 50,
+      "name": "Scan Runs",
+      "source": "ADMIN.V_CIS_SCAN_SUMMARY"
+    }
+  ],
+  "notes": [
+    "Page 1 remains the generated APEX Home page.",
+    "Operational Summary is page 5 because page 1 already existed in the generated app shell.",
+    "Page 10 FINDING_ID links drill into page 20 with P20_FINDING_ID set from the selected row.",
+    "Page 10 includes an Open Work default report with priority, risk score, due status, age, product, region, and latest-run columns.",
+    "Page 10 overlay also defines a High Priority public saved report; live metadata verification confirms it is present.",
+    "Page 10 Open Work highlights high-priority and overdue rows.",
+    "Page 20 Finding Detail is read-only and filtered by P20_FINDING_ID.",
+    "Mutable workflow controls, demo comments, risk acceptance, suppression, action audit, and workflow authorization schemes are removed from the current demo export.",
+    "This export contains no committed credentials, wallet material, or native CIS raw rows."
+  ]
+}

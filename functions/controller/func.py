@@ -65,20 +65,24 @@ def _handler(ctx, data: io.BytesIO = None):
         LOG.warning(message["reason"])
         return response.Response(ctx, response_data=json.dumps(message), status_code=409)
 
-    run_id = f"cis-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:10]}"
+    run_prefix = os.environ.get("RUN_PREFIX", "CIS-CI").strip() or "CIS-CI"
+    run_id = f"{run_prefix}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}"
     container_environment = {
         "RUN_ID": run_id,
         "OUTPUT_BUCKET": _required("OUTPUT_BUCKET"),
+        "OBJECT_PREFIX": os.environ.get("OBJECT_PREFIX", ""),
         "CIS_REGIONS": os.environ.get("CIS_REGIONS", "All"),
         "CIS_LEVEL": os.environ.get("CIS_LEVEL", "2"),
         "CIS_INCLUDE_OBP": os.environ.get("CIS_INCLUDE_OBP", "false"),
         "CIS_INCLUDE_RAW": os.environ.get("CIS_INCLUDE_RAW", "false"),
         "CIS_REDACT_OUTPUT": os.environ.get("CIS_REDACT_OUTPUT", "false"),
+        "CIS_ALL_RESOURCES": os.environ.get("CIS_ALL_RESOURCES", "true"),
+        "CIS_DEBUG": os.environ.get("CIS_DEBUG", "false"),
     }
 
     vnic = oci.container_instances.models.CreateContainerVnicDetails(
         subnet_id=_required("SUBNET_ID"),
-        is_public_ip_assigned=False,
+        is_public_ip_assigned=_bool("ASSIGN_PUBLIC_IP"),
     )
     network_security_group_id = os.environ.get("NETWORK_SECURITY_GROUP_ID")
     if network_security_group_id:

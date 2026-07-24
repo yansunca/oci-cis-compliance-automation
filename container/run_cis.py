@@ -1,21 +1,17 @@
-"""Run Oracle's CIS report class with a Container Instance resource principal.
+"""Run Oracle CIS reports and publish the app-compatible Object Storage layout."""
 
-This is intentionally the same CIS_Report construction used by the referenced
-OCI Functions blog. It packages the locally generated reports into one object
-instead of passing output_bucket to CIS_Report, which would emit one event per
-CSV/JSON file and make downstream processing non-deterministic.
-"""
+from __future__ import annotations
 
 import json
 import logging
 import os
 import traceback
-import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import oci
 from cis_reports import CIS_Report
-
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -28,41 +24,72 @@ def required(name: str) -> str:
     return value
 
 
-def as_bool(name: str) -> bool:
-    return os.environ.get(name, "false").lower() in {"1", "true", "yes", "on"}
+def as_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def create_archive(directory: Path, archive_path: Path) -> None:
-    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
-        for path in sorted(directory.rglob("*")):
-            if path.is_file():
-                archive.write(path, path.relative_to(directory))
+def object_key(run_id: str, *parts: str) -> str:
+    prefix = os.environ.get("OBJECT_PREFIX", "").strip("/")
+    suffix = "/".join(part.strip("/") for part in parts if part)
+    return "/".join(part for part in (prefix, run_id, suffix) if part)
 
 
-def upload_json_diagnostic(
-    object_client: oci.object_storage.ObjectStorageClient,
-    namespace: str,
-    output_bucket: str,
-    run_id: str,
-    name: str,
-    payload: dict,
-) -> None:
-    """Persist a small, non-secret diagnostic for a one-shot container failure."""
-    object_client.put_object(
+def put_json(client: Any, namespace: str, bucket: str, name: str, payload: dict[str, Any]) -> None:
+    client.put_object(
         namespace,
-        output_bucket,
-        f"runs/{run_id}/{name}",
-        json.dumps(payload, sort_keys=True).encode("utf-8"),
+        bucket,
+        name,
+        json.dumps(payload, indent=2, sort_keys=True).encode("utf-8"),
         content_type="application/json",
-        opc_meta={"run-id": run_id, "report-format": "oci-cis-diagnostic-v1"},
+        opc_meta={"run-id": payload.get("runId", "")},
+    )
+
+
+def upload_report_files(client: Any, namespace: str, bucket: str, run_id: str, report_dir: Path) -> int:
+    count = 0
+    for path in sorted(report_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        relative_name = path.relative_to(report_dir).as_posix()
+        target = object_key(run_id, "files", relative_name)
+        with path.open("rb") as handle:
+            client.put_object(
+                namespace,
+                bucket,
+                target,
+                handle,
+                opc_meta={"run-id": run_id, "report-file": relative_name},
+            )
+        count += 1
+    return count
+
+
+def upload_failure(client: Any, namespace: str, bucket: str, run_id: str, stage: str, error: Exception) -> None:
+    put_json(
+        client,
+        namespace,
+        bucket,
+        object_key(run_id, "_FAILED"),
+        {
+            "runId": run_id,
+            "status": "FAILED",
+            "stage": stage,
+            "errorType": type(error).__name__,
+            "message": str(error),
+            "traceback": traceback.format_exc(),
+            "completedAt": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        },
     )
 
 
 def main() -> None:
     run_id = required("RUN_ID")
     output_bucket = required("OUTPUT_BUCKET")
-    report_directory = Path("/tmp") / run_id
-    archive_path = Path("/tmp") / "cis-report.zip"
+    report_directory = Path("/tmp") / run_id / "reports"
+    started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     signer = oci.auth.signers.get_resource_principals_signer()
     config = {
@@ -75,8 +102,6 @@ def main() -> None:
     stage = "initializing CIS_Report"
 
     try:
-        # This mirrors the blog's Function handler, replacing its /tmp output with a
-        # run-specific directory. output_bucket remains None until the zip is complete.
         report = CIS_Report(
             config=config,
             signer=signer,
@@ -85,16 +110,14 @@ def main() -> None:
             report_directory=str(report_directory),
             report_prefix=None,
             report_summary_json=True,
-            # CIS_Report 3.3.0 normalizes this setting with .upper(), so it
-            # must remain a string even though the other feature flags are booleans.
             print_to_screen="False",
             regions_to_run_in=os.environ.get("CIS_REGIONS", "All"),
             raw_data=as_bool("CIS_INCLUDE_RAW"),
             obp=as_bool("CIS_INCLUDE_OBP"),
             redact_output=as_bool("CIS_REDACT_OUTPUT"),
             oci_url=None,
-            debug=False,
-            all_resources=False,
+            debug=as_bool("CIS_DEBUG"),
+            all_resources=as_bool("CIS_ALL_RESOURCES"),
         )
         stage = "generating CIS reports"
         report.generate_reports(int(os.environ.get("CIS_LEVEL", "2")))
@@ -103,37 +126,40 @@ def main() -> None:
         if not summary_file.is_file():
             raise RuntimeError("CIS run did not produce cis_summary_report.json")
 
-        stage = "creating report archive"
-        create_archive(report_directory, archive_path)
-        object_name = f"runs/{run_id}/cis-report.zip"
-        stage = "uploading report archive"
-        with archive_path.open("rb") as package:
-            object_client.put_object(
-                namespace,
-                output_bucket,
-                object_name,
-                package,
-                content_type="application/zip",
-                opc_meta={"run-id": run_id, "report-format": "oci-cis-summary-v1"},
-            )
-    except Exception as error:
-        diagnostic = {
-            "error_message": str(error),
-            "error_type": type(error).__name__,
-            "run_id": run_id,
-            "stage": stage,
-            "traceback": traceback.format_exc(),
+        stage = "uploading report files"
+        file_count = upload_report_files(object_client, namespace, output_bucket, run_id, report_directory)
+        completed_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        ready = {
+            "runId": run_id,
+            "status": "SUCCESS",
+            "bucket": output_bucket,
+            "namespace": namespace,
+            "filesPrefix": object_key(run_id, "files"),
+            "reportFileCount": file_count,
+            "scannerVersion": "3.3.0",
+            "requestedRegions": os.environ.get("CIS_REGIONS", "All"),
+            "benchmarkLevel": os.environ.get("CIS_LEVEL", "2"),
+            "startedAt": started_at,
+            "completedAt": completed_at,
         }
+        put_json(object_client, namespace, output_bucket, object_key(run_id, "run_ready.json"), ready)
+        object_client.put_object(
+            namespace,
+            output_bucket,
+            object_key(run_id, "_SUCCESS"),
+            (completed_at + "\n").encode("utf-8"),
+            content_type="text/plain",
+            opc_meta={"run-id": run_id, "report-status": "SUCCESS"},
+        )
+    except Exception as error:
         try:
-            upload_json_diagnostic(
-                object_client, namespace, output_bucket, run_id, "failure.json", diagnostic
-            )
+            upload_failure(object_client, namespace, output_bucket, run_id, stage, error)
         except Exception:
             LOG.exception("Unable to upload CIS failure diagnostic")
         LOG.exception("CIS runner failed during %s", stage)
         raise
 
-    LOG.info(json.dumps({"status": "uploaded", "bucket": output_bucket, "object": object_name}))
+    LOG.info(json.dumps({"status": "uploaded", "bucket": output_bucket, "runId": run_id}))
 
 
 if __name__ == "__main__":
