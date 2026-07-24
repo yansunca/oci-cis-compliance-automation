@@ -173,12 +173,28 @@ Automated today:
 - `database/migrations/` contains the canonical CIS findings schema, product mapping model, audit artifact views, and APEX support objects.
 - `apex/export/f100_oci_cis_findings_operations_demo.sql` contains the Oracle APEX CIS Findings Operations application export.
 
-SQLcl is required for the automated install path. Check that the `sql` command is available:
+SQLcl and Java are required for the automated install path. SQLcl requires Java 11 or newer. Check both before running the installer:
 
 ```sh
+java -version
 which sql
 sql -v
 ```
+
+If SQLcl is installed but not on `PATH`, set `SQL_BIN` to the full SQLcl executable path. With the Homebrew cask on macOS, the path can look like this:
+
+```sh
+SQL_BIN=/opt/homebrew/Caskroom/sqlcl/<version>/sqlcl/bin/sql
+```
+
+If Java is installed but SQLcl cannot find it, set `JAVA_HOME` first. Example for Homebrew OpenJDK 17 on macOS:
+
+```sh
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+Private ADB note: if `adb_private_endpoint_subnet_id` is set, the ADB and APEX endpoint is private. Cloud Shell is not inside the customer VCN and normally cannot resolve or reach the private ADB hostname. Run the ADB/APEX install from a host with private network access, such as a laptop on VPN with private DNS working, a bastion/admin host in the VCN, or an approved CI runner in the VCN.
 
 Automated install path after Terraform creates ADB:
 
@@ -192,11 +208,13 @@ oci db autonomous-database generate-wallet \
   --region <region>
 ```
 
-Then run the ADB/APEX install:
+Then run the ADB/APEX install from the host that can reach the ADB endpoint. Prefer prompting for the password so it is not written to shell history:
 
 ```sh
+read -s ADB_PASSWORD
+SQL_BIN=${SQL_BIN:-sql} \
 ADB_WALLET_ZIP=~/Wallet_CISAUTOMATION.zip \
-ADB_PASSWORD='<adb_admin_password>' \
+ADB_PASSWORD="$ADB_PASSWORD" \
 ADB_CONNECT_ALIAS=cisautomation_low \
 APEX_WORKSPACE=OCI_CIS_FINDINGS \
 APEX_APP_SCHEMA=OCI_CIS_APP \
