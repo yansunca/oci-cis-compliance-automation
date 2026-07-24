@@ -187,11 +187,13 @@ ADB_WALLET_ZIP=/secure/path/Wallet_CISAUTOMATION.zip \
 ADB_PASSWORD='<adb_admin_password>' \
 ADB_CONNECT_ALIAS=cisautomation_low \
 APEX_WORKSPACE=OCI_CIS_FINDINGS \
-APEX_APP_SCHEMA=ADMIN \
+APEX_APP_SCHEMA=OCI_CIS_APP \
 scripts/deploy_adb_apex.sh
 ```
 
-The script builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL.
+The script creates or verifies a locked `OCI_CIS_APP` APEX parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL.
+
+If a customer requires manual APEX workspace governance, set `CREATE_APEX_WORKSPACE=false` and provide a reviewed setup file with `APEX_WORKSPACE_SETUP_SQL=/path/to/workspace_setup.sql` before importing the app.
 
 Manual equivalent:
 
@@ -201,7 +203,7 @@ sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautom
 sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautomation_low' @apex/export/f100_oci_cis_findings_operations_demo.sql
 ```
 
-Some APEX first-time setup can be customer-policy dependent, especially workspace name, workspace admin user, SSO/password policy, and whether APEX admin APIs are allowed. If the customer approves scripted workspace setup, provide a reviewed SQL file with `APEX_WORKSPACE_SETUP_SQL=/path/to/workspace_setup.sql` and the script will run it before importing the app.
+Some APEX first-time setup can still be customer-policy dependent, especially workspace admin users, SSO/password policy, and whether APEX admin APIs are allowed. The automated script handles the standard workspace/parsing-schema path; use `CREATE_APEX_WORKSPACE=false` only when the customer wants those controls performed separately.
 
 ## Trigger a scan
 

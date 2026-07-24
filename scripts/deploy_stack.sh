@@ -75,5 +75,5 @@ python3 scripts/build_adb_deploy_package.py --output-dir ./build/adb-deploy
 cat <<MSG
 
 ADB/APEX bundle generated under ./build/adb-deploy.
-Import apex/export/f100_oci_cis_findings_operations_demo.sql after running the SQL bundle/migrations.
+After Terraform creates ADB, run scripts/deploy_adb_apex.sh to install the SQL bundle and APEX app.
 MSG

@@ -10,7 +10,9 @@ ADB_PASSWORD="${ADB_PASSWORD:-}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
 IMPORT_APEX="${IMPORT_APEX:-true}"
 APEX_WORKSPACE="${APEX_WORKSPACE:-OCI_CIS_FINDINGS}"
-APEX_APP_SCHEMA="${APEX_APP_SCHEMA:-ADMIN}"
+APEX_APP_SCHEMA="${APEX_APP_SCHEMA:-OCI_CIS_APP}"
+CREATE_APEX_SCHEMA="${CREATE_APEX_SCHEMA:-true}"
+CREATE_APEX_WORKSPACE="${CREATE_APEX_WORKSPACE:-true}"
 APEX_APP_ID="${APEX_APP_ID:-100}"
 APEX_APP_ALIAS="${APEX_APP_ALIAS:-OCI-CIS-FINDINGS-OPERATIONS}"
 APEX_APP_NAME="${APEX_APP_NAME:-OCI CIS Findings Operations}"
@@ -30,7 +32,9 @@ Common optional environment:
   ADB_CONNECT_ALIAS=cisautomation_low
   ADB_USER=ADMIN
   APEX_WORKSPACE=OCI_CIS_FINDINGS
-  APEX_APP_SCHEMA=ADMIN
+  APEX_APP_SCHEMA=OCI_CIS_APP
+  CREATE_APEX_SCHEMA=true
+  CREATE_APEX_WORKSPACE=true
   APEX_APP_ID=100
   APEX_APP_ALIAS=OCI-CIS-FINDINGS-OPERATIONS
   APEX_WORKSPACE_SETUP_SQL=/path/to/customer-approved-workspace-setup.sql
@@ -76,6 +80,20 @@ case "$ADB_PASSWORD" in
     ;;
 esac
 
+case "$APEX_APP_SCHEMA" in
+  *[!A-Za-z0-9_]*|'')
+    echo 'ERROR: APEX_APP_SCHEMA must contain only letters, numbers, and underscores.' >&2
+    exit 2
+    ;;
+esac
+
+case "$APEX_WORKSPACE" in
+  *[!A-Za-z0-9_]*|'')
+    echo 'ERROR: APEX_WORKSPACE must contain only letters, numbers, and underscores.' >&2
+    exit 2
+    ;;
+esac
+
 if [ ! -f "$APEX_EXPORT_FILE" ]; then
   echo "ERROR: APEX export file not found: $APEX_EXPORT_FILE" >&2
   exit 2
@@ -106,6 +124,84 @@ SQL
   chmod 600 "$driver"
   "$SQL_BIN" -cloudconfig "$ADB_WALLET_ZIP" -s /nolog @"$driver"
 }
+
+run_sql_inline() {
+  local sql_body="$1"
+  local label="$2"
+  local driver="$work_dir/${label}.sql"
+  cat >"$driver" <<SQL
+set define off
+set sqlblanklines on
+whenever sqlerror exit sql.sqlcode rollback
+connect ${ADB_USER}/"${ADB_PASSWORD}"@${ADB_CONNECT_ALIAS}
+${sql_body}
+exit success
+SQL
+  chmod 600 "$driver"
+  "$SQL_BIN" -cloudconfig "$ADB_WALLET_ZIP" -s /nolog @"$driver"
+}
+
+if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
+  echo "Creating or verifying locked APEX parsing schema ${APEX_APP_SCHEMA}..."
+  schema_password="OciCisApp-$(date +%s)-A1!"
+  run_sql_inline "
+declare
+  l_count number;
+begin
+  select count(*)
+    into l_count
+    from dba_users
+   where username = upper('${APEX_APP_SCHEMA}');
+
+  if l_count = 0 then
+    execute immediate 'create user ${APEX_APP_SCHEMA} identified by "${schema_password}" account lock';
+  else
+    execute immediate 'alter user ${APEX_APP_SCHEMA} account lock';
+  end if;
+end;
+/
+grant create session to ${APEX_APP_SCHEMA};
+" "apex_schema"
+else
+  echo "Skipping APEX parsing schema setup because CREATE_APEX_SCHEMA=$CREATE_APEX_SCHEMA"
+fi
+
+if [ "$CREATE_APEX_WORKSPACE" = "true" ]; then
+  echo "Creating or verifying APEX workspace ${APEX_WORKSPACE}..."
+  run_sql_inline "
+declare
+  l_count number;
+begin
+  select count(*)
+    into l_count
+    from apex_workspaces
+   where workspace = upper('${APEX_WORKSPACE}');
+
+  if l_count = 0 then
+    apex_instance_admin.add_workspace(
+      p_workspace      => upper('${APEX_WORKSPACE}'),
+      p_primary_schema => upper('${APEX_APP_SCHEMA}')
+    );
+  else
+    apex_instance_admin.add_schema(
+      p_workspace => upper('${APEX_WORKSPACE}'),
+      p_schema    => upper('${APEX_APP_SCHEMA}')
+    );
+  end if;
+  commit;
+exception
+  when others then
+    if sqlcode in (-20001, -20987) then
+      null;
+    else
+      raise;
+    end if;
+end;
+/
+" "apex_workspace"
+else
+  echo "Skipping APEX workspace setup because CREATE_APEX_WORKSPACE=$CREATE_APEX_WORKSPACE"
+fi
 
 if [ -n "$APEX_WORKSPACE_SETUP_SQL" ]; then
   if [ ! -f "$APEX_WORKSPACE_SETUP_SQL" ]; then
