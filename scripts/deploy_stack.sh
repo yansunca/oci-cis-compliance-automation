@@ -24,9 +24,28 @@ if [ ! -f terraform.tfvars ]; then
   exit 2
 fi
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "ERROR: docker is required to build/push images" >&2
-  exit 2
+if [ "$PUSH_IMAGES" = "true" ]; then
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: docker is required when PUSH_IMAGES=true" >&2
+    exit 2
+  fi
+  host_arch="$(uname -m)"
+  needs_amd64="${CONTROLLER_PLATFORM:-linux/amd64} ${RUNNER_PLATFORM:-linux/amd64} ${LOADER_PLATFORM:-linux/amd64}"
+  if [ "$host_arch" = "arm64" ] && printf '%s' "$needs_amd64" | grep -q 'linux/amd64'; then
+    if ! docker buildx version >/dev/null 2>&1; then
+      cat >&2 <<'ERR'
+ERROR: This deployment builds linux/amd64 images, but this host is arm64 and Docker Buildx is not available.
+
+Use one of these options:
+  1. Run the image build/push from an AMD/x86 builder, such as OCI Cloud Shell or an AMD Linux VM.
+  2. Install/enable Docker Buildx locally.
+  3. Switch the scanner to A1 ARM only if all deployed image targets support ARM.
+
+No Terraform apply was run by this script before this check.
+ERR
+      exit 2
+    fi
+  fi
 fi
 
 $TF_BIN init

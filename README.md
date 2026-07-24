@@ -61,7 +61,9 @@ scripts/deploy_stack.sh
 
 With the defaults above, the script initializes Terraform/OpenTofu, runs `plan`, and generates `./build/adb-deploy`. It does not apply Terraform changes or push images.
 
-For first deployment, create the OCIR repositories explicitly, then build/push images:
+For first deployment, run the phases explicitly.
+
+Create the four OCIR repositories:
 
 ```sh
 REGION_KEY=iad \
@@ -69,12 +71,11 @@ TENANCY_NAMESPACE=<object-storage-namespace> \
 NAME_PREFIX=cis-auto \
 TAG=v1 \
 BOOTSTRAP_REPOS=true \
-PUSH_IMAGES=true \
 APPLY=false \
 scripts/deploy_stack.sh
 ```
 
-After reviewing the plan, deploy the full stack:
+Build and push images from a supported image builder. The default images are `linux/amd64`; on Apple Silicon this requires Docker Buildx, otherwise use an AMD/x86 builder such as OCI Cloud Shell or an AMD Linux VM:
 
 ```sh
 REGION_KEY=iad \
@@ -82,6 +83,17 @@ TENANCY_NAMESPACE=<object-storage-namespace> \
 NAME_PREFIX=cis-auto \
 TAG=v1 \
 PUSH_IMAGES=true \
+APPLY=false \
+scripts/deploy_stack.sh
+```
+
+After reviewing the plan and confirming images were pushed, deploy the full stack:
+
+```sh
+REGION_KEY=iad \
+TENANCY_NAMESPACE=<object-storage-namespace> \
+NAME_PREFIX=cis-auto \
+TAG=v1 \
 APPLY=true \
 scripts/deploy_stack.sh
 ```
@@ -93,6 +105,12 @@ python3 scripts/check_latest_cis_release.py
 ```
 
 That prints `LATEST_VERSION`, the latest GitHub release tag, the pinned raw script URL, and the script SHA-256 for controlled image updates.
+
+## Image build host
+
+The default deployment builds AMD/x86 images for OCI Functions and the E4 scanner Container Instance. On Apple Silicon Macs, Docker must have Buildx enabled to build `linux/amd64` images. If Buildx is not available, run the image build/push step from an AMD/x86 builder such as OCI Cloud Shell or an AMD Linux VM.
+
+The plan-only command does not build images and can run from any machine with Terraform/OpenTofu and OCI CLI credentials.
 
 ## Shape and image platform
 
