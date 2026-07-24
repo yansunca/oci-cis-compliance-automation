@@ -10,7 +10,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --no-compile -r requirements.txt
 
 # Oracle's script is the same file linked by the blog, pinned to a reviewed commit and checksum.
 RUN curl --fail --location --silent --show-error \
