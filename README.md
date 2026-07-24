@@ -144,62 +144,21 @@ Function networking, scanner networking, and ADB/APEX networking are separate ch
 
 For GovCloud or customer-controlled environments, the recommended production posture is: private Function subnet, private scanner subnet with controlled egress, private-endpoint ADB/APEX, mTLS required, private Object Storage bucket, and IAM policies scoped to the deployment compartment plus tenancy read permissions required by the CIS benchmark.
 
-## Manual first deploy
+## Manual fallback
 
-1. Create `terraform.tfvars`.
+Use the automated deploy phases above for normal installation. Manual Terraform and image commands are only fallback/debug steps if a customer change-control process requires each action to be run separately.
 
-```sh
-cp terraform.tfvars.example terraform.tfvars
-```
-
-Set tenancy, compartment, region, OCIR region key, subnet, ADB password, and image tags.
-
-For Gov/private deployments, set:
-
-```hcl
-adb_private_endpoint_subnet_id = "<adb-private-endpoint-subnet-ocid>"
-adb_private_endpoint_nsg_ids  = ["<optional-nsg-ocid>"]
-adb_private_endpoint_label    = "cis-adb"
-```
-
-2. Create OCIR repositories first.
+Key manual equivalents:
 
 ```sh
 terraform init
-terraform apply \
-  -target=oci_artifacts_container_repository.controller \
+terraform plan
+terraform apply -target=oci_artifacts_container_repository.controller \
   -target=oci_artifacts_container_repository.runner \
   -target=oci_artifacts_container_repository.object_event_loader \
   -target=oci_artifacts_container_repository.adb_sql_loader
-```
-
-3. Build and push images.
-
-```sh
-make push REGION_KEY=iad TENANCY_NAMESPACE=<object-storage-namespace> NAME_PREFIX=cis-auto TAG=v1
-```
-
-The Makefile builds four images:
-
-```text
-<region-key>.ocir.io/<namespace>/<name-prefix>-controller:<tag>
-<region-key>.ocir.io/<namespace>/<name-prefix>-runner:<tag>
-<region-key>.ocir.io/<namespace>/<name-prefix>-object-event-loader:<tag>
-<region-key>.ocir.io/<namespace>/<name-prefix>-adb-sql-loader:<tag>
-```
-
-4. Apply the full stack.
-
-```sh
+make push REGION_KEY=<region-key> TENANCY_NAMESPACE=<namespace> NAME_PREFIX=<name-prefix> TAG=<tag>
 terraform apply
-```
-
-5. Install database objects and APEX.
-
-Run the migrations in `database/migrations/` in filename order, then import `apex/export/f100_oci_cis_findings_operations_demo.sql` into the APEX workspace. To generate a single SQL handoff bundle:
-
-```sh
-python3 scripts/build_adb_deploy_package.py --output-dir /private/tmp/oci-cis-adb-deploy
 ```
 
 ## ADB and APEX installation
