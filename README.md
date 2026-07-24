@@ -26,7 +26,7 @@ scan runs, product views, finding detail, audit links"]
   UI --> O
 ```
 
-The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS quickstart and writes the same object layout as the Function-based scanner: `<run_id>/files/*`, `<run_id>/run_ready.json`, and `<run_id>/_SUCCESS`. APEX reads the canonical ADB model and links back to the original CIS report files in Object Storage for audit evidence.
+The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS quickstart, preserves the native CIS CSV/HTML/JSON report artifacts in Object Storage, and publishes a run-completion contract using `<run_id>/files/*`, `<run_id>/run_ready.json`, and `<run_id>/_SUCCESS`. The event and SQL loader Functions then normalize the completed run into the ADB canonical CIS findings model, enrich it for product/compartment operations, and keep links back to the original report files so APEX can support operational review and audit evidence from the same source run.
 
 ## Contents
 
