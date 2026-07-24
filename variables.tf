@@ -35,9 +35,21 @@ variable "existing_private_subnet_id" {
 }
 
 variable "existing_network_security_group_id" {
-  description = "Optional OCID of an existing NSG to attach to the Function application and Container Instance VNIC. Leave null to rely on the subnet's security lists."
+  description = "Optional OCID of an existing NSG to attach to the Function application. Leave null to rely on the subnet's security lists."
   type        = string
   default     = null
+}
+
+variable "scanner_subnet_id" {
+  description = "Optional subnet OCID for scanner Container Instances. Defaults to existing_private_subnet_id. Use this only when the scanner needs a different egress subnet from Functions."
+  type        = string
+  default     = ""
+}
+
+variable "scanner_network_security_group_id" {
+  description = "Optional NSG OCID for scanner Container Instances. Defaults to existing_network_security_group_id when empty."
+  type        = string
+  default     = ""
 }
 
 variable "schedule_cron" {
@@ -49,13 +61,13 @@ variable "schedule_cron" {
 variable "image_tag" {
   description = "Immutable tag to deploy for the controller and runner images. Change this on each release."
   type        = string
-  default     = "v7"
+  default     = "v1"
 }
 
-variable "ingester_image_tag" {
-  description = "Immutable tag to deploy for the report-ingestion Function image."
+variable "loader_image_tag" {
+  description = "Immutable tag to deploy for the Object Storage event loader and ADB SQL loader Function images."
   type        = string
-  default     = "v13"
+  default     = "v1"
 }
 
 variable "container_shape" {
@@ -95,6 +107,36 @@ variable "cis_include_raw" {
 
 variable "cis_redact_output" {
   description = "Redact OCIDs in CIS CSV/JSON output before packaging it."
+  type        = bool
+  default     = false
+}
+
+variable "cis_all_resources" {
+  description = "Include broader resource evidence used for product/tag mapping."
+  type        = bool
+  default     = true
+}
+
+variable "cis_debug" {
+  description = "Enable CIS script debug mode inside the scanner container."
+  type        = bool
+  default     = false
+}
+
+variable "object_prefix" {
+  description = "Optional Object Storage prefix before each run_id. Leave empty for <run_id>/... layout."
+  type        = string
+  default     = ""
+}
+
+variable "run_prefix" {
+  description = "Prefix for generated run IDs. The controller appends UTC timestamp and a short unique suffix."
+  type        = string
+  default     = "CIS-CI"
+}
+
+variable "assign_public_ip" {
+  description = "Assign a public IP to each Container Instance VNIC. Prefer false when the subnet has private egress to OCIR, Object Storage, and OCI APIs."
   type        = bool
   default     = false
 }
@@ -159,6 +201,25 @@ variable "adb_data_storage_size_in_tbs" {
     condition     = var.adb_data_storage_size_in_tbs >= 1
     error_message = "adb_data_storage_size_in_tbs must be at least 1."
   }
+}
+
+
+variable "adb_private_endpoint_subnet_id" {
+  description = "Optional subnet OCID for a private-endpoint Autonomous Database. Leave empty to create the database with secure public access."
+  type        = string
+  default     = ""
+}
+
+variable "adb_private_endpoint_nsg_ids" {
+  description = "Optional NSG OCIDs for the private-endpoint Autonomous Database. Used only when adb_private_endpoint_subnet_id is set."
+  type        = list(string)
+  default     = []
+}
+
+variable "adb_private_endpoint_label" {
+  description = "Optional private endpoint label. Used only when adb_private_endpoint_subnet_id is set."
+  type        = string
+  default     = ""
 }
 
 variable "adb_service_level" {

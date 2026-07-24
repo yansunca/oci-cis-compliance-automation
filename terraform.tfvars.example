@@ -4,8 +4,8 @@ compartment_id = "ocid1.compartment.oc1..example"
 region         = "us-ashburn-1"
 region_key     = "iad"
 name_prefix                = "cis-auto"
-image_tag                  = "v7"
-ingester_image_tag         = "v13"
+image_tag                  = "v1"
+loader_image_tag           = "v1"
 container_shape            = "CI.Standard.A1.Flex"
 existing_private_subnet_id = "ocid1.subnet.oc1..example"
 
@@ -18,11 +18,29 @@ adb_ecpu_count             = 2
 adb_data_storage_size_in_tbs = 1
 adb_service_level          = "LOW"
 
-# Optional. Leave commented out to use the subnet's security lists instead.
+# Optional. Leave commented out to use the Function subnet's security lists instead.
 # existing_network_security_group_id = "ocid1.networksecuritygroup.oc1..example"
+
+# Optional. Functions always use existing_private_subnet_id. Set these only if
+# scanner Container Instances need a different subnet/NSG for egress.
+# scanner_subnet_id = "ocid1.subnet.oc1..scanner-example"
+# scanner_network_security_group_id = "ocid1.networksecuritygroup.oc1..scanner-example"
+
+# Optional. For Gov/private deployments, create ADB with private endpoint access.
+# Leave these empty/commented for secure public mTLS access.
+# adb_private_endpoint_subnet_id = "ocid1.subnet.oc1..example"
+# adb_private_endpoint_nsg_ids = ["ocid1.networksecuritygroup.oc1..example"]
+# adb_private_endpoint_label = "cis-adb"
 
 # Sunday 02:00 UTC
 schedule_cron = "0 2 * * 0"
 
 # All is valid; a comma-separated region list reduces the scope and runtime.
 cis_regions = "All"
+
+# Scanner output and evidence options.
+cis_all_resources = true
+cis_debug        = false
+object_prefix    = ""
+run_prefix       = "CIS-CI"
+assign_public_ip = false

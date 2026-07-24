@@ -12,9 +12,10 @@ locals {
     Workload  = "cis-compliance-automation"
   })
 
-  controller_image = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.controller.namespace}/${oci_artifacts_container_repository.controller.display_name}:${var.image_tag}"
-  runner_image     = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.runner.namespace}/${oci_artifacts_container_repository.runner.display_name}:${var.image_tag}"
-  ingester_image   = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.ingester.namespace}/${oci_artifacts_container_repository.ingester.display_name}:${var.ingester_image_tag}"
+  controller_image          = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.controller.namespace}/${oci_artifacts_container_repository.controller.display_name}:${var.image_tag}"
+  runner_image              = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.runner.namespace}/${oci_artifacts_container_repository.runner.display_name}:${var.image_tag}"
+  object_event_loader_image = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.object_event_loader.namespace}/${oci_artifacts_container_repository.object_event_loader.display_name}:${var.loader_image_tag}"
+  adb_sql_loader_image      = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.adb_sql_loader.namespace}/${oci_artifacts_container_repository.adb_sql_loader.display_name}:${var.loader_image_tag}"
 }
 
 resource "oci_objectstorage_bucket" "reports" {
@@ -42,9 +43,16 @@ resource "oci_artifacts_container_repository" "runner" {
   freeform_tags  = local.tags
 }
 
-resource "oci_artifacts_container_repository" "ingester" {
+resource "oci_artifacts_container_repository" "object_event_loader" {
   compartment_id = var.compartment_id
-  display_name   = "${var.name_prefix}-ingester"
+  display_name   = "${var.name_prefix}-object-event-loader"
+  is_public      = false
+  freeform_tags  = local.tags
+}
+
+resource "oci_artifacts_container_repository" "adb_sql_loader" {
+  compartment_id = var.compartment_id
+  display_name   = "${var.name_prefix}-adb-sql-loader"
   is_public      = false
   freeform_tags  = local.tags
 }
@@ -96,8 +104,8 @@ resource "oci_functions_function" "controller" {
   config = {
     COMPARTMENT_ID            = var.compartment_id
     AVAILABILITY_DOMAIN       = data.oci_identity_availability_domains.current.availability_domains[0].name
-    SUBNET_ID                 = var.existing_private_subnet_id
-    NETWORK_SECURITY_GROUP_ID = var.existing_network_security_group_id == null ? "" : var.existing_network_security_group_id
+    SUBNET_ID                 = var.scanner_subnet_id == "" ? var.existing_private_subnet_id : var.scanner_subnet_id
+    NETWORK_SECURITY_GROUP_ID = var.scanner_network_security_group_id == "" ? (var.existing_network_security_group_id == null ? "" : var.existing_network_security_group_id) : var.scanner_network_security_group_id
     CIS_RUNNER_IMAGE          = local.runner_image
     OUTPUT_BUCKET             = oci_objectstorage_bucket.reports.name
     CIS_REGIONS               = var.cis_regions
@@ -105,6 +113,11 @@ resource "oci_functions_function" "controller" {
     CIS_INCLUDE_OBP           = tostring(var.cis_include_obp)
     CIS_INCLUDE_RAW           = tostring(var.cis_include_raw)
     CIS_REDACT_OUTPUT         = tostring(var.cis_redact_output)
+    CIS_ALL_RESOURCES         = tostring(var.cis_all_resources)
+    CIS_DEBUG                 = tostring(var.cis_debug)
+    OBJECT_PREFIX             = var.object_prefix
+    RUN_PREFIX                = var.run_prefix
+    ASSIGN_PUBLIC_IP          = tostring(var.assign_public_ip)
     CONTAINER_SHAPE           = var.container_shape
     CONTAINER_OCPUS           = tostring(var.container_ocpus)
     CONTAINER_MEMORY_IN_GBS   = tostring(var.container_memory_in_gbs)

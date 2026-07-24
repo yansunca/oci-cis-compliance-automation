@@ -1,0 +1,46 @@
+{
+  "applicationName": "OCI CIS Findings Operations",
+  "workspace": "OCI_CIS_FINDINGS",
+  "schema": "OCI_CIS_APP",
+  "pages": [
+    {
+      "pageId": 5,
+      "name": "Operational Summary",
+      "type": "dashboard",
+      "views": ["V_CIS_DASHBOARD_METRIC_CARDS", "V_CIS_LATEST_SCAN_HEALTH"]
+    },
+    {
+      "pageId": 10,
+      "name": "Findings Work Queue",
+      "type": "interactive-report",
+      "views": ["V_CIS_APEX_WORK_QUEUE"],
+      "filters": ["PRODUCT_ID", "PRIORITY", "CURRENT_STATE", "DUE_STATUS", "RESOURCE_TYPE"]
+    },
+    {
+      "pageId": 20,
+      "name": "Finding Detail",
+      "type": "faceted-detail",
+      "views": ["V_CIS_APEX_FINDING_DETAIL", "V_CIS_APEX_ACTION_AUDIT"]
+    },
+    {
+      "pageId": 30,
+      "name": "Product Scorecard",
+      "type": "interactive-report",
+      "views": ["V_CIS_PRODUCT_SCORECARD"]
+    },
+    {
+      "pageId": 40,
+      "name": "Mapping Quality",
+      "type": "interactive-report",
+      "views": ["V_CIS_MAPPING_QUALITY_DETAIL"],
+      "defaultFilter": "NEEDS_ATTENTION = 'Y'"
+    },
+    {
+      "pageId": 50,
+      "name": "Scan Runs",
+      "type": "interactive-report",
+      "views": ["V_CIS_SCAN_SUMMARY", "V_CIS_LATEST_SCAN_HEALTH"]
+    }
+  ],
+  "drillKeys": ["APEX_DETAIL_KEY", "EVIDENCE_LOCATOR", "LAST_OBSERVED_RUN_ID", "LAST_SCHEMA_HASH"]
+}

@@ -65,12 +65,10 @@ resource "oci_database_autonomous_database" "cis" {
   is_free_tier                = false
   is_mtls_connection_required = true
   license_model               = "LICENSE_INCLUDED"
-  subnet_id                   = null
-  nsg_ids                     = []
-  # OCI switches an existing private-endpoint database to public when this
-  # label is reset to an empty string.
-  private_endpoint_label = ""
-  freeform_tags          = local.tags
+  subnet_id                   = var.adb_private_endpoint_subnet_id == "" ? null : var.adb_private_endpoint_subnet_id
+  nsg_ids                     = var.adb_private_endpoint_subnet_id == "" ? [] : var.adb_private_endpoint_nsg_ids
+  private_endpoint_label      = var.adb_private_endpoint_subnet_id == "" ? "" : (var.adb_private_endpoint_label == "" ? "${var.name_prefix}-adb" : var.adb_private_endpoint_label)
+  freeform_tags               = local.tags
 }
 
 resource "oci_database_autonomous_database_wallet" "cis" {

@@ -1,5 +1,5 @@
 output "tenancy_namespace" {
-  description = "OCIR tenancy namespace; use it when pushing the three images."
+  description = "OCIR tenancy namespace; use it when pushing the four images."
   value       = oci_artifacts_container_repository.controller.namespace
 }
 
@@ -11,8 +11,12 @@ output "runner_image" {
   value = local.runner_image
 }
 
-output "ingester_image" {
-  value = local.ingester_image
+output "object_event_loader_image" {
+  value = local.object_event_loader_image
+}
+
+output "adb_sql_loader_image" {
+  value = local.adb_sql_loader_image
 }
 
 output "report_bucket" {
@@ -20,8 +24,12 @@ output "report_bucket" {
 }
 
 output "function_invocation_log" {
-  description = "OCI Logging service log that records controller Function invocations."
+  description = "OCI Logging service log that records Function invocations."
   value       = oci_logging_log.function_invocations.id
+}
+
+output "controller_function_id" {
+  value = oci_functions_function.controller.id
 }
 
 output "controller_invoke_endpoint" {
@@ -32,9 +40,14 @@ output "resource_schedule_ocid" {
   value = oci_resource_scheduler_schedule.controller.id
 }
 
-output "report_ingestion_function" {
-  description = "Function invoked by the Object Storage report-create event."
-  value       = oci_functions_function.ingester.id
+output "object_event_loader_function" {
+  description = "Function invoked by Object Storage create-object events. It processes only CIS completion markers."
+  value       = oci_functions_function.object_event_loader.id
+}
+
+output "adb_sql_loader_function" {
+  description = "Function that loads completed CIS runs into the Autonomous Database canonical schema."
+  value       = oci_functions_function.adb_sql_loader.id
 }
 
 output "report_upload_event_rule" {
@@ -45,12 +58,17 @@ output "autonomous_database_id" {
   value = oci_database_autonomous_database.cis.id
 }
 
-output "autonomous_database_public_low_connect_string" {
-  description = "Public mTLS connect string for the LOW database service."
+output "autonomous_database_low_connect_string" {
+  description = "mTLS connect string for the LOW database service."
   value       = oci_database_autonomous_database.cis.connection_strings[0].low
 }
 
-output "cis_results_table" {
-  description = "Single ADB table populated by the report-ingestion Function."
-  value       = "ADMIN.CIS_RESULTS"
+output "adb_migration_source" {
+  description = "SQL migrations to install before importing the APEX application."
+  value       = "database/migrations"
+}
+
+output "apex_application_export" {
+  description = "APEX application export to import into the Autonomous Database APEX workspace."
+  value       = "apex/export/f100_oci_cis_findings_operations_demo.sql"
 }

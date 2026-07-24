@@ -1,116 +1,155 @@
 # OCI CIS compliance automation
 
-This Terraform configuration deploys an event-driven CIS reporting workflow:
+Code-only deployment repo for an OCI CIS Findings Operations workflow.
+
+## Runtime flow
 
 ```mermaid
 flowchart LR
   S["OCI Resource Scheduler"] --> C["Controller Function"]
-  C --> CI["Fresh OCI Container Instance\nCIS benchmark runner"]
-  CI --> O["Object Storage\nruns/<run-id>/cis-report.zip"]
+  C --> CI["OCI Container Instance
+real CIS scanner"]
+  CI --> O["Object Storage
+<run_id>/files/*
+<run_id>/run_ready.json
+<run_id>/_SUCCESS"]
   O --> E["Object Storage create event"]
-  E --> I["Report-ingestion Function"]
-  I --> ST["Object Storage\nstaged NDJSON"]
-  ST --> A["Autonomous Database\nADMIN.CIS_RESULTS"]
+  E --> L["Object event loader Function
+filters _SUCCESS"]
+  L --> SQL["ADB SQL loader Function"]
+  SQL --> A["Autonomous Database
+canonical CIS model"]
+  A --> UI["APEX application"]
 ```
 
-The runner uses Oracle's `CIS_Report` implementation from the [OCI Landing Zones CIS quickstart](https://github.com/oci-landing-zones/oci-cis-landingzone-quickstart/blob/bc8301a97b25dcef251e9f91042e4c8bea2c7bb6/scripts/cis_reports.py), which is the script linked by the referenced A-Team post. The Docker build pins that exact commit and SHA-256 (`402652…6ae74ee`).
+The scanner image runs Oracle's `cis_reports.py` from the OCI Landing Zones CIS quickstart and writes the same object layout as the Function-based scanner: `<run_id>/files/*`, `<run_id>/run_ready.json`, and `<run_id>/_SUCCESS`.
 
-## What this deploys
+## Contents
 
-- OCI Resource Scheduler invokes the controller Function on the configured UTC cron schedule.
-- The controller creates a fresh private Container Instance for each scan and skips an overlapping run.
-- The Container Instance runs the CIS script with its resource principal, packages all generated files, and writes one report package to Object Storage.
-- An Object Storage create event invokes the ingestion Function for each completed `cis-report.zip`. It extracts `cis_summary_report.json`, writes a run-scoped NDJSON staging object, and calls `DBMS_CLOUD.COPY_DATA` in ADB.
-- Terraform creates a public, mTLS-only Autonomous Database Serverless instance, Vault and encryption key, a secret for the ADB administrator password, a wallet stored as Vault-secret fragments, three private OCIR repositories, two Functions, an Object Storage event rule, IAM dynamic groups/policies, Function invocation logging, and the schedule.
-- The ADB resource principal reads the staged object; no Object Storage credential is stored in the database. The Function retrieves the database password from Vault at runtime, never from Function configuration.
-- Terraform does not create any VCN, subnet, gateway, route table, security list, or NSG. It uses the supplied existing network resources.
+- `container/` - Container Instance scanner image.
+- `functions/controller/` - Function that creates one Container Instance per scan run.
+- `functions/object-storage-event-loader/` - Function triggered by Object Storage create events; it only proceeds on `_SUCCESS` markers.
+- `functions/adb-sql-loader/` - Function that loads a completed run into ADB.
+- `database/migrations/` - Canonical schema, product mapping, audit views, and APEX support objects.
+- `apex/export/` - APEX application export.
+- `scripts/` - Build/load helpers, including the ADB deployment package builder.
 
-## Prerequisites
+## Automated deploy
 
-- Terraform 1.6+ and OCI provider credentials with permission to create Functions, Container Instances, Object Storage, Artifact Registry, Events, Vault, Autonomous Database, Resource Scheduler, and IAM resources in the selected compartment.
-- Docker with Buildx enabled (Docker Desktop includes it), plus an OCI auth token for pushing to OCIR. The runner is built for ARM64 because it runs on `CI.Standard.A1.Flex`; both Functions are built for AMD64.
-- A **dedicated workload compartment**. The CIS runner needs tenancy-wide read/inspect permission for the benchmark, and its dynamic group therefore includes Container Instances in this compartment.
-- Existing private networking. Functions and Container Instances need outbound HTTPS access to OCIR, Object Storage, OCI APIs, and the public ADB endpoint—normally through your existing NAT gateway and/or Service Gateway. The ingestion Function uses the mTLS wallet stored in Vault.
-- A strong `adb_admin_password`. It is marked sensitive in Terraform, stored in OCI Vault for runtime use, and is still present in Terraform state; use a protected remote backend before production use.
+Create `terraform.tfvars`, log in to OCIR with Docker, then run:
 
-## First deployment
+```sh
+REGION_KEY=iad \
+TENANCY_NAMESPACE=<object-storage-namespace> \
+NAME_PREFIX=cis-auto \
+TAG=v1 \
+APPLY=false \
+scripts/deploy_stack.sh
+```
 
-Follow these steps in order. The OCIR repositories must exist and contain images before Terraform can create the Functions.
+The script initializes Terraform/OpenTofu, bootstraps the four OCIR repositories, builds and pushes the four images, runs `plan`, and generates `./build/adb-deploy` for the database/APEX handoff. Re-run with `APPLY=true` after reviewing the plan.
 
-1. Create `terraform.tfvars` from the example. Set the tenancy and workload-compartment OCIDs, region, OCIR region key, existing private subnet OCID, and a strong ADB administrator password. Set an existing NSG OCID only if your network requires one.
+To check for a new stable upstream CIS script release in CI:
 
-   ```sh
-   cp terraform.tfvars.example terraform.tfvars
-   ```
+```sh
+python3 scripts/check_latest_cis_release.py
+```
 
-2. Initialize Terraform and create the three private OCIR repositories. This targeted apply is only the bootstrap step for a first deployment.
+That prints `LATEST_VERSION`, the latest GitHub release tag, the pinned raw script URL, and the script SHA-256 for controlled image updates.
 
-   ```sh
-   terraform init
-   terraform apply \
-     -target=oci_artifacts_container_repository.controller \
-     -target=oci_artifacts_container_repository.runner \
-     -target=oci_artifacts_container_repository.ingester
-   ```
+## Network choices
 
-3. Define the OCIR image names. Replace the three placeholder values with the values from `terraform.tfvars` (or use your Object Storage namespace shown in the OCI Console). The image tags below match the Terraform defaults: controller and runner use `v7`; ingester uses `v13`.
+Function networking, scanner networking, and ADB/APEX networking are separate choices. Functions are always deployed on the supplied private subnet.
 
-   ```sh
-   export OCI_REGION_KEY=<region-key>
-   export OCI_NAMESPACE=<object-storage-namespace>
-   export OCI_NAME_PREFIX=<name-prefix>
-   export OCIR_HOST="${OCI_REGION_KEY}.ocir.io"
+| Area | Public option | Private option |
+| --- | --- | --- |
+| Functions | Not used. Terraform deploys the Function application to `existing_private_subnet_id`. | Required. The subnet must reach OCI Functions dependencies, OCI APIs, OCIR, Object Storage, and ADB. |
+| Container Instance scanner | Set `assign_public_ip = true` only when the scanner subnet needs public egress to pull the scanner image and call OCI APIs. | Preferred. Use the same private subnet or set `scanner_subnet_id` to another private subnet with route rules to a NAT gateway for public endpoints and a Service Gateway for Object Storage/Oracle Services Network. Set `assign_public_ip = false`. |
+| ADB and APEX | Leave `adb_private_endpoint_subnet_id` empty. ADB is public mTLS-only, and APEX is reachable from the internet subject to ADB/APEX authentication and ACL choices. | Set `adb_private_endpoint_subnet_id`, optional `adb_private_endpoint_nsg_ids`, and optional `adb_private_endpoint_label`. APEX is reachable only from inside the VCN path, such as VPN, FastConnect, bastion/browser host, or peered network. |
 
-   export CONTROLLER_IMAGE="${OCIR_HOST}/${OCI_NAMESPACE}/${OCI_NAME_PREFIX}-controller:v7"
-   export RUNNER_IMAGE="${OCIR_HOST}/${OCI_NAMESPACE}/${OCI_NAME_PREFIX}-runner:v7"
-   export INGESTER_IMAGE="${OCIR_HOST}/${OCI_NAMESPACE}/${OCI_NAME_PREFIX}-ingester:v13"
-   ```
+For GovCloud or customer-controlled environments, the recommended production posture is: private Function subnet, private scanner subnet with controlled egress, private-endpoint ADB/APEX, mTLS required, private Object Storage bucket, and IAM policies scoped to the deployment compartment plus tenancy read permissions required by the CIS benchmark.
 
-4. Log in to OCIR. When prompted, use `<object-storage-namespace>/<OCI-username>` as the username and your OCI auth token as the password. Federated users use `<object-storage-namespace>/<identity-domain>/<OCI-username>`.
+## Manual first deploy
 
-   ```sh
-   docker login "${OCIR_HOST}"
-   ```
+1. Create `terraform.tfvars`.
 
-5. Build and push the three images. `--load` makes each single-platform Buildx image available to `docker push` locally.
+```sh
+cp terraform.tfvars.example terraform.tfvars
+```
 
-   ```sh
-   docker buildx build --platform linux/amd64 --load \
-     -t "${CONTROLLER_IMAGE}" functions/controller
-   docker push "${CONTROLLER_IMAGE}"
+Set tenancy, compartment, region, OCIR region key, subnet, ADB password, and image tags.
 
-   docker buildx build --platform linux/arm64 --load \
-     -t "${RUNNER_IMAGE}" container
-   docker push "${RUNNER_IMAGE}"
+For Gov/private deployments, set:
 
-   docker buildx build --platform linux/amd64 --load \
-     -t "${INGESTER_IMAGE}" functions/ingester
-   docker push "${INGESTER_IMAGE}"
-   ```
+```hcl
+adb_private_endpoint_subnet_id = "<adb-private-endpoint-subnet-ocid>"
+adb_private_endpoint_nsg_ids  = ["<optional-nsg-ocid>"]
+adb_private_endpoint_label    = "cis-adb"
+```
 
-6. Create the complete architecture.
+2. Create OCIR repositories first.
 
-   ```sh
-   terraform apply
-   ```
+```sh
+terraform init
+terraform apply \
+  -target=oci_artifacts_container_repository.controller \
+  -target=oci_artifacts_container_repository.runner \
+  -target=oci_artifacts_container_repository.object_event_loader \
+  -target=oci_artifacts_container_repository.adb_sql_loader
+```
 
-The default schedule runs at 02:00 UTC every Sunday. Change `schedule_cron` in `terraform.tfvars` before the full apply. The controller's active-run guard skips an overlapping scan rather than starting a second tenancy-wide benchmark. The ADB is public and mTLS-only; Terraform creates no ADB VCN, subnet, NSG, or private endpoint.
+3. Build and push images.
 
-## Verify
+```sh
+make push REGION_KEY=iad TENANCY_NAMESPACE=<object-storage-namespace> NAME_PREFIX=cis-auto TAG=v1
+```
 
-After the schedule runs, Object Storage contains the immutable source package and the normalized staging object:
+The Makefile builds four images:
 
 ```text
-runs/<run-id>/cis-report.zip
-staged/<run-id>/cis_results.ndjson
+<region-key>.ocir.io/<namespace>/<name-prefix>-controller:<tag>
+<region-key>.ocir.io/<namespace>/<name-prefix>-runner:<tag>
+<region-key>.ocir.io/<namespace>/<name-prefix>-object-event-loader:<tag>
+<region-key>.ocir.io/<namespace>/<name-prefix>-adb-sql-loader:<tag>
 ```
 
-The archive contains all generated CSV/HTML files and `cis_summary_report.json`. `ADMIN.CIS_RESULTS` contains one row per CIS recommendation, keyed by run ID and recommendation number. `DBMS_CLOUD` records load operations in `USER_LOAD_OPERATIONS`; inspect it from Database Actions when troubleshooting. Container Instance lifecycle records are retained so you can investigate failed runs. Remove old inactive instances using your normal retention process after validating their report packages.
+4. Apply the full stack.
 
-To check the loaded results in Database Actions, sign in as `ADMIN` and run:
-
-```sql
-SELECT run_id, recommendation_number, is_compliant, title, compliance_percentage, ingested_at
-FROM admin.cis_results
-ORDER BY ingested_at DESC, recommendation_number;
+```sh
+terraform apply
 ```
+
+5. Install database objects and APEX.
+
+Run the migrations in `database/migrations/` in filename order, then import `apex/export/f100_oci_cis_findings_operations_demo.sql` into the APEX workspace. To generate a single SQL handoff bundle:
+
+```sh
+python3 scripts/build_adb_deploy_package.py --output-dir /private/tmp/oci-cis-adb-deploy
+```
+
+## Trigger a scan
+
+Scheduled runs use OCI Resource Scheduler. For an on-demand run, invoke the controller Function:
+
+```sh
+export CONTROLLER_FUNCTION_ID=$(terraform output -raw controller_function_id)
+export REGION=<region>
+scripts/invoke_controller.sh
+
+# Or invoke directly:
+oci fn function invoke \
+  --function-id <controller_function_ocid> \
+  --body '{}' \
+  --file /tmp/cis-controller-response.json \
+  --region <region>
+```
+
+A successful scanner run writes these Object Storage objects:
+
+```text
+<run_id>/files/<native CIS report files>
+<run_id>/run_ready.json
+<run_id>/_SUCCESS
+```
+
+The Object Storage event loader receives create-object events for the bucket, ignores ordinary report files, and invokes the ADB SQL loader only when `_SUCCESS` or `_SUCCESS.txt` appears and `run_ready.json` exists.
