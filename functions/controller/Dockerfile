@@ -1,11 +1,13 @@
-FROM docker.io/fnproject/python:3.11-dev AS build
-WORKDIR /function
-COPY requirements.txt .
-RUN pip install --no-cache-dir --target /python -r requirements.txt
+FROM python:3.11-slim-bookworm
 
-FROM docker.io/fnproject/python:3.11
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /function
-COPY --from=build /python /python
-COPY func.py .
-ENV PYTHONPATH=/python
-CMD ["/python/bin/fdk", "/function/func.py", "handler"]
+
+COPY requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY func.py /function/func.py
+
+ENTRYPOINT ["/usr/local/bin/fdk", "/function/func.py", "handler"]
