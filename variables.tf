@@ -73,7 +73,7 @@ variable "loader_image_tag" {
 variable "container_shape" {
   description = "OCI Container Instance shape used for each CIS scan."
   type        = string
-  default     = "CI.Standard.A1.Flex"
+  default     = "CI.Standard.E4.Flex"
 }
 
 variable "cis_regions" {

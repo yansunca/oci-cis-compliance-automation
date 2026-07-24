@@ -3,7 +3,7 @@ TENANCY_NAMESPACE ?=
 NAME_PREFIX ?= cis-auto
 TAG ?= v1
 CONTROLLER_PLATFORM ?= linux/amd64
-RUNNER_PLATFORM ?= linux/arm64
+RUNNER_PLATFORM ?= linux/amd64
 LOADER_PLATFORM ?= linux/amd64
 
 ifeq ($(strip $(TENANCY_NAMESPACE)),)

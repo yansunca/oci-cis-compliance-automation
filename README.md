@@ -57,6 +57,22 @@ python3 scripts/check_latest_cis_release.py
 
 That prints `LATEST_VERSION`, the latest GitHub release tag, the pinned raw script URL, and the script SHA-256 for controlled image updates.
 
+## Shape and image platform
+
+The default scanner runtime is AMD/x86:
+
+```hcl
+container_shape = "CI.Standard.E4.Flex"
+```
+
+The Makefile default matches that shape:
+
+```make
+RUNNER_PLATFORM ?= linux/amd64
+```
+
+To use A1 ARM for lower cost, set `container_shape = "CI.Standard.A1.Flex"` in `terraform.tfvars` and build with `RUNNER_PLATFORM=linux/arm64`.
+
 ## Network choices
 
 Function networking, scanner networking, and ADB/APEX networking are separate choices. Functions are always deployed on the supplied private subnet.
