@@ -18,7 +18,7 @@ resource "oci_dns_resolver_endpoint" "private_adb_inbound" {
   count = local.dns_resolver_endpoint_enabled ? 1 : 0
 
   resolver_id       = data.oci_core_vcn_dns_resolver_association.dns_resolver_endpoint[0].dns_resolver_id
-  name              = "${var.name_prefix}-adb-inbound"
+  name              = "${replace(var.name_prefix, "-", "_")}_adb_inbound"
   subnet_id         = local.dns_resolver_endpoint_subnet_id
   scope             = "PRIVATE"
   is_forwarding     = false
