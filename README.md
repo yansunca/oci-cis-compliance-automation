@@ -150,18 +150,18 @@ For GovCloud or customer-controlled environments, the recommended production pos
 
 ## Private ADB/APEX access
 
-When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. The customer corporate IT, security, and network teams should choose the approved private access approach for their environment. Use whichever approved pattern provides these two basics:
+When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. The customer's IT security and network teams should select the access pattern that aligns with their enterprise standards. The selected pattern must provide:
 
-- The user or installer can route to the VCN/subnet that contains the ADB private endpoint.
-- The ADB private hostname resolves to the private endpoint IP.
+- Network routing from the user or installer environment to the VCN subnet that contains the ADB private endpoint.
+- DNS resolution of the ADB private hostname to the private endpoint IP address.
 
-Common patterns are:
+Common implementation patterns include:
 
-- Run the installer and browser from an OCI admin VM inside the VCN.
-- Connect from a laptop through VPN or FastConnect with working private DNS.
-- Use a bastion or jump host for installation, then let users access APEX through the customer's approved private network path.
+- Running the installer and browser from an OCI admin VM inside the VCN.
+- Connecting from a laptop through VPN or FastConnect with private DNS resolution.
+- Using a bastion or jump host for installation, with APEX user access provided through the customer's approved private network path.
 
-For APEX, allow HTTPS TCP/443 to the ADB private endpoint from the approved user network. For SQLcl installation, allow SQL*Net/mTLS TCP/1522 from the installer host.
+For APEX access, allow HTTPS TCP/443 to the ADB private endpoint from the approved user network. For SQLcl installation, allow SQL*Net/mTLS TCP/1522 from the installer host.
 
 If the customer wants OCI DNS Resolver support, this repo can create an inbound resolver endpoint:
 
