@@ -146,6 +146,36 @@ Function networking, scanner networking, and ADB/APEX networking are separate ch
 
 For GovCloud or customer-controlled environments, the recommended production posture is: private Function subnet, private scanner subnet with controlled egress, private-endpoint ADB/APEX, mTLS required, private Object Storage bucket, and IAM policies scoped to the deployment compartment plus tenancy read permissions required by the CIS benchmark.
 
+## Private ADB/APEX VPN Access
+
+When ADB is deployed with `adb_private_endpoint_subnet_id`, the ADB SQL endpoint and APEX URL are private. Users and installers must be on a network path that can route to the VCN and resolve the private ADB DNS name.
+
+Customer network requirements:
+
+- VPN, FastConnect, peering, bastion, or admin host route to the VCN CIDR that contains the ADB private endpoint.
+- DNS resolution for the private ADB suffix, for example `adb.<region>.oraclecloud.com`.
+- Conditional DNS forwarding from customer/VPN DNS to OCI DNS through an OCI DNS Resolver inbound endpoint in the VCN.
+- DNS security rules that allow UDP/TCP 53 from the customer DNS resolver or VPN DNS path to the OCI inbound resolver endpoint.
+- ADB NSG ingress that allows HTTPS/APEX on TCP 443 from the customer VPN/corporate egress CIDR.
+- ADB NSG ingress that allows SQL*Net/mTLS on TCP 1522 from the host running the SQLcl installer.
+
+Example for an ADB private endpoint label `cis-adb` in `us-ashburn-1`:
+
+```text
+Private ADB hostname: cis-adb.adb.us-ashburn-1.oraclecloud.com
+DNS suffix to forward: adb.us-ashburn-1.oraclecloud.com
+Expected resolution: private IP in the ADB subnet, for example 10.120.30.x
+```
+
+Validate from the laptop or admin host that will open APEX or run SQLcl:
+
+```sh
+nslookup cis-adb.adb.us-ashburn-1.oraclecloud.com
+curl -vk https://cis-adb.adb.us-ashburn-1.oraclecloud.com/ords/
+```
+
+If `nslookup` returns `NXDOMAIN` or a public resolver answer, VPN routing alone is not enough. Fix private DNS forwarding or run the ADB/APEX install from an OCI admin host inside the VCN.
+
 ## Manual fallback
 
 Use the automated deploy phases above for normal installation. Manual Terraform and image commands are only fallback/debug steps if a customer change-control process requires each action to be run separately.
