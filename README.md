@@ -2,6 +2,8 @@
 
 Code-only deployment repo for an OCI CIS Findings Operations workflow. The solution uses Oracle APEX to assist CIS findings operations: scan-run review, product/compartment views, finding drill-down, audit evidence links, and operational status checks.
 
+This repository is a proof-of-concept reference implementation for demo and evaluation purposes. It is not an Oracle product and is not covered by Oracle support.
+
 ## CIS reporting workflow
 
 ```mermaid
@@ -391,6 +393,6 @@ Do not commit wallet files, Terraform state files, API keys, OCIR auth tokens, o
 
 ## License
 
-Copyright (c) 2026 Oracle and/or its affiliates.
+Copyright 2026 OCI CIS Compliance Automation contributors.
 
-Released under the Universal Permissive License, Version 1.0. See [LICENSE.txt](LICENSE.txt).
+Licensed under the Apache License, Version 2.0. See [LICENSE.txt](LICENSE.txt).
