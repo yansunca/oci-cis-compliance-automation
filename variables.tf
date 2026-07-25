@@ -222,6 +222,37 @@ variable "adb_private_endpoint_label" {
   default     = ""
 }
 
+
+variable "create_dns_resolver_inbound_endpoint" {
+  description = "Create an OCI DNS Resolver inbound endpoint so VPN/corporate DNS can conditionally forward private ADB lookups into the VCN. Requires private ADB networking."
+  type        = bool
+  default     = false
+}
+
+variable "dns_resolver_endpoint_subnet_id" {
+  description = "Optional subnet OCID for the DNS Resolver inbound endpoint. Defaults to adb_private_endpoint_subnet_id when empty. The subnet must be reachable from the customer VPN/corporate DNS path."
+  type        = string
+  default     = ""
+}
+
+variable "dns_resolver_endpoint_nsg_id" {
+  description = "Optional NSG OCID attached to the DNS Resolver inbound endpoint. If dns_resolver_allowed_cidrs is set, Terraform adds UDP/TCP 53 ingress rules to this NSG."
+  type        = string
+  default     = ""
+}
+
+variable "dns_resolver_allowed_cidrs" {
+  description = "CIDR blocks allowed to query the DNS Resolver inbound endpoint on UDP/TCP 53. Use customer VPN DNS resolver or corporate DNS egress CIDRs, not 0.0.0.0/0."
+  type        = list(string)
+  default     = []
+}
+
+variable "dns_resolver_endpoint_listening_address" {
+  description = "Optional fixed private IP for the DNS Resolver inbound endpoint. Leave empty to let OCI allocate one from the endpoint subnet."
+  type        = string
+  default     = ""
+}
+
 variable "adb_service_level" {
   description = "mTLS database service profile used by the ingestion Function."
   type        = string

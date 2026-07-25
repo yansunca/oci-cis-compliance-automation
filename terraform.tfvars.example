@@ -32,6 +32,15 @@ adb_service_level          = "LOW"
 # adb_private_endpoint_nsg_ids = ["ocid1.networksecuritygroup.oc1..example"]
 # adb_private_endpoint_label = "cis-adb"
 
+# Optional. Create an OCI DNS Resolver inbound endpoint so VPN/corporate DNS
+# can forward private ADB/APEX lookups into the VCN. The customer DNS/VPN team
+# still needs to configure conditional forwarding to the output IP.
+# create_dns_resolver_inbound_endpoint = true
+# dns_resolver_endpoint_subnet_id = "ocid1.subnet.oc1..dns-example"
+# dns_resolver_endpoint_nsg_id = "ocid1.networksecuritygroup.oc1..dns-example"
+# dns_resolver_allowed_cidrs = ["192.0.2.10/32"]
+# dns_resolver_endpoint_listening_address = "10.120.30.10"
+
 # Sunday 02:00 UTC
 schedule_cron = "0 2 * * 0"
 

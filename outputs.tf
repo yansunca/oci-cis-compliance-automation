@@ -72,3 +72,14 @@ output "apex_application_export" {
   description = "APEX application export to import into the Autonomous Database APEX workspace."
   value       = "apex/export/f100_oci_cis_findings_operations_demo.sql"
 }
+
+
+output "dns_resolver_inbound_endpoint_ip" {
+  description = "Private IP for the optional OCI DNS Resolver inbound endpoint. Configure customer/VPN DNS conditional forwarding to this IP."
+  value       = try(oci_dns_resolver_endpoint.private_adb_inbound[0].listening_address, null)
+}
+
+output "dns_resolver_inbound_endpoint_id" {
+  description = "OCID of the optional OCI DNS Resolver inbound endpoint."
+  value       = try(oci_dns_resolver_endpoint.private_adb_inbound[0].id, null)
+}

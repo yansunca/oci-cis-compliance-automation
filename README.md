@@ -159,6 +159,23 @@ Customer network requirements:
 - ADB NSG ingress that allows HTTPS/APEX on TCP 443 from the customer VPN/corporate egress CIDR.
 - ADB NSG ingress that allows SQL*Net/mTLS on TCP 1522 from the host running the SQLcl installer.
 
+This repo can create the OCI-side inbound resolver endpoint when these variables are set:
+
+```hcl
+create_dns_resolver_inbound_endpoint = true
+dns_resolver_endpoint_subnet_id      = "<subnet_reachable_from_vpn_or_dns_resolver>"
+dns_resolver_endpoint_nsg_id         = "<dns_resolver_nsg_ocid>"
+dns_resolver_allowed_cidrs           = ["<customer_dns_or_vpn_cidr>"]
+```
+
+After apply, give this output to the VPN/DNS team:
+
+```sh
+terraform output dns_resolver_inbound_endpoint_ip
+```
+
+They must configure conditional forwarding for the private ADB suffix to that IP. Terraform cannot change the customer's corporate/VPN DNS resolver.
+
 Example for an ADB private endpoint label `cis-adb` in `us-ashburn-1`:
 
 ```text
