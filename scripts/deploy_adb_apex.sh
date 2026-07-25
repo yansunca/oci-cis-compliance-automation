@@ -14,6 +14,10 @@ APEX_APP_SCHEMA="${APEX_APP_SCHEMA:-OCI_CIS_APP}"
 APEX_APP_SCHEMA_PASSWORD="${APEX_APP_SCHEMA_PASSWORD:-}"
 CREATE_APEX_SCHEMA="${CREATE_APEX_SCHEMA:-true}"
 CREATE_APEX_WORKSPACE="${CREATE_APEX_WORKSPACE:-true}"
+CREATE_APEX_USER="${CREATE_APEX_USER:-false}"
+APEX_USERNAME="${APEX_USERNAME:-}"
+APEX_USER_PASSWORD="${APEX_USER_PASSWORD:-}"
+APEX_USER_EMAIL="${APEX_USER_EMAIL:-}"
 APEX_APP_ID="${APEX_APP_ID:-100}"
 APEX_APP_ALIAS="${APEX_APP_ALIAS:-OCI-CIS-FINDINGS-OPERATIONS}"
 APEX_APP_NAME="${APEX_APP_NAME:-OCI CIS Findings Operations}"
@@ -37,6 +41,10 @@ Common optional environment:
   APEX_APP_SCHEMA_PASSWORD=<optional parsing schema password>
   CREATE_APEX_SCHEMA=true
   CREATE_APEX_WORKSPACE=true
+  CREATE_APEX_USER=false
+  APEX_USERNAME=<optional APEX login user>
+  APEX_USER_PASSWORD=<optional APEX login password>
+  APEX_USER_EMAIL=<optional APEX user email>
   APEX_APP_ID=100
   APEX_APP_ALIAS=OCI-CIS-FINDINGS-OPERATIONS
   APEX_WORKSPACE_SETUP_SQL=/path/to/customer-approved-workspace-setup.sql
@@ -95,6 +103,45 @@ case "$APEX_WORKSPACE" in
     exit 2
     ;;
 esac
+
+sql_literal() {
+  printf '%s' "$1" | sed "s/'/''/g"
+}
+
+if [ "$CREATE_APEX_USER" = "true" ]; then
+  case "$APEX_USERNAME" in
+    *[!A-Za-z0-9_.@-]*|'')
+      echo 'ERROR: APEX_USERNAME must contain only letters, numbers, underscore, dot, at-sign, or hyphen.' >&2
+      exit 2
+      ;;
+  esac
+
+  if [ -z "$APEX_USER_PASSWORD" ]; then
+    printf 'APEX password for %s: ' "$APEX_USERNAME" >&2
+    stty -echo
+    IFS= read -r APEX_USER_PASSWORD
+    stty echo
+    printf '\n' >&2
+  fi
+
+  case "$APEX_USER_PASSWORD" in
+    *$'\n'*|*'"'*)
+      echo 'ERROR: APEX_USER_PASSWORD must not contain a newline or double quote for this non-interactive SQLcl wrapper.' >&2
+      exit 2
+      ;;
+  esac
+
+  case "$APEX_USER_EMAIL" in
+    *$'\n'*)
+      echo 'ERROR: APEX_USER_EMAIL must not contain a newline.' >&2
+      exit 2
+      ;;
+  esac
+
+  APEX_USERNAME_SQL="$(sql_literal "$APEX_USERNAME")"
+  APEX_USER_PASSWORD_SQL="$(sql_literal "$APEX_USER_PASSWORD")"
+  APEX_USER_EMAIL_SQL="$(sql_literal "$APEX_USER_EMAIL")"
+fi
 
 if [ ! -f "$APEX_EXPORT_FILE" ]; then
   echo "ERROR: APEX export file not found: $APEX_EXPORT_FILE" >&2
@@ -243,6 +290,46 @@ if [ -n "$APEX_WORKSPACE_SETUP_SQL" ]; then
   run_sql_file "$ADB_USER" "$ADB_PASSWORD" "$APEX_WORKSPACE_SETUP_SQL" "workspace_setup"
 fi
 
+if [ "$CREATE_APEX_USER" = "true" ]; then
+  echo "Creating or updating APEX workspace user ${APEX_USERNAME}..."
+  run_sql_inline "$ADB_USER" "$ADB_PASSWORD" "
+declare
+  l_user_name varchar2(255) := upper('${APEX_USERNAME_SQL}');
+begin
+  apex_util.set_workspace('${APEX_WORKSPACE}');
+
+  if apex_util.is_username_unique(l_user_name) then
+    apex_util.create_user(
+      p_user_name                    => l_user_name,
+      p_email_address                => '${APEX_USER_EMAIL_SQL}',
+      p_web_password                 => '${APEX_USER_PASSWORD_SQL}',
+      p_developer_privs              => null,
+      p_default_schema               => '${APEX_APP_SCHEMA}',
+      p_allow_access_to_schemas      => '${APEX_APP_SCHEMA}',
+      p_change_password_on_first_use => 'Y'
+    );
+  else
+    apex_util.edit_user(
+      p_user_id                      => apex_util.get_user_id(l_user_name),
+      p_user_name                    => l_user_name,
+      p_web_password                 => '${APEX_USER_PASSWORD_SQL}',
+      p_new_password                 => '${APEX_USER_PASSWORD_SQL}',
+      p_email_address                => '${APEX_USER_EMAIL_SQL}',
+      p_default_schema               => '${APEX_APP_SCHEMA}',
+      p_allow_access_to_schemas      => '${APEX_APP_SCHEMA}',
+      p_developer_roles              => null,
+      p_change_password_on_first_use => 'Y'
+    );
+  end if;
+
+  commit;
+end;
+/
+" "apex_user"
+else
+  echo "Skipping APEX workspace user setup because CREATE_APEX_USER=$CREATE_APEX_USER"
+fi
+
 if [ "$RUN_MIGRATIONS" = "true" ]; then
   echo "Running ADB migration bundle as ${APEX_APP_SCHEMA}..."
   run_sql_file "$APEX_APP_SCHEMA" "$APEX_APP_SCHEMA_PASSWORD" "$ADB_DEPLOY_OUTPUT_DIR/phase3_adb_migration_bundle.sql" "migrations"
@@ -292,6 +379,12 @@ Workspace: ${APEX_WORKSPACE}
 Application alias: ${APEX_APP_ALIAS}
 Application path: /ords/r/${workspace_path}/${app_path}/
 MSG
+
+if [ "$CREATE_APEX_USER" = "true" ]; then
+  echo "APEX user: ${APEX_USERNAME}"
+else
+  echo "APEX user: not created by this script. Create a workspace user through the customer-approved APEX administration process, or rerun with CREATE_APEX_USER=true."
+fi
 
 if [ -n "$APEX_BASE_URL" ]; then
   echo "APEX URL: ${APEX_BASE_URL%/}/ords/r/${workspace_path}/${app_path}/"

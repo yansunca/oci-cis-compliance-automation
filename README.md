@@ -165,7 +165,27 @@ APEX_APP_SCHEMA=OCI_CIS_APP \
 scripts/deploy_adb_apex.sh
 ```
 
-The installer creates or verifies the `OCI_CIS_APP` parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, runs the ADB migration bundle, imports the APEX application, and prints the APEX path.
+APEX login users are customer-controlled. To have the installer create an initial workspace user, pass explicit credentials:
+
+```sh
+read -s ADB_PASSWORD
+read -s APEX_USER_PASSWORD
+SQL_BIN=${SQL_BIN:-sql} \
+ADB_WALLET_ZIP=~/Wallet_CISAUTOMATION.zip \
+ADB_PASSWORD="$ADB_PASSWORD" \
+ADB_CONNECT_ALIAS=cisautomation_low \
+APEX_WORKSPACE=OCI_CIS_FINDINGS \
+APEX_APP_SCHEMA=OCI_CIS_APP \
+CREATE_APEX_USER=true \
+APEX_USERNAME=<initial_apex_user> \
+APEX_USER_PASSWORD="$APEX_USER_PASSWORD" \
+APEX_USER_EMAIL=<user_email> \
+scripts/deploy_adb_apex.sh
+```
+
+If `CREATE_APEX_USER` is not enabled, create workspace users through the customer's approved APEX administration process.
+
+The installer creates or verifies the `OCI_CIS_APP` parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, optionally creates a customer-specified APEX workspace user, runs the ADB migration bundle, imports the APEX application, and prints the APEX path.
 
 Default APEX values:
 
