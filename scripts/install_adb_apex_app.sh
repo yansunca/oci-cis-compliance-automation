@@ -31,6 +31,7 @@ CREATE_APEX_USER="${CREATE_APEX_USER:-false}"
 usage() {
   cat <<'USAGE'
 Install the OCI CIS ADB schema and APEX app after Terraform creates ADB.
+Run from the Terraform working directory, or set ADB_ID explicitly.
 
 Required environment:
   ADB_PASSWORD=<ADB ADMIN password>

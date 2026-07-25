@@ -152,7 +152,7 @@ APEX_USER_EMAIL=<initial_user_email> \
 scripts/install_adb_apex_app.sh
 ```
 
-The script reads the ADB OCID from Terraform output, generates the ADB wallet under `build/wallet/`, installs the schema migrations, imports the APEX application, applies required page overlays, and optionally creates the initial APEX workspace user. If `CREATE_APEX_USER=true`, the script prompts for the initial APEX user password when `APEX_USER_PASSWORD` is not already set.
+When run from the Terraform working directory, the script reads the ADB OCID from Terraform output. If running from another approved machine or directory, pass `ADB_ID=<autonomous_database_ocid>` explicitly. The script generates the ADB wallet under `build/wallet/`, installs the schema migrations, imports the APEX application, applies required page overlays, and optionally creates the initial APEX workspace user. If `CREATE_APEX_USER=true`, the script prompts for the initial APEX user password when `APEX_USER_PASSWORD` is not already set.
 
 Use these overrides only when needed:
 
