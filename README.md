@@ -206,7 +206,7 @@ If APEX workspace creation is managed separately, set `CREATE_APEX_WORKSPACE=fal
 
 ## Product mapping tags
 
-The APEX product views use the normalized CIS finding compartment plus configured product metadata. For the lowest-maintenance setup, tag product-owning compartments before running the scanner.
+The APEX product views use the normalized CIS finding compartment plus product metadata from OCI tags. For the lowest-maintenance setup, tag product-owning compartments before running the scanner. Tag the root tenancy compartment as the fallback product for root-level CIS findings.
 
 Recommended tag pattern:
 
@@ -216,14 +216,15 @@ Tag key: ProductId
 Example value: OCI_POC
 ```
 
-The loader snapshots compartment metadata from the CIS run and product enrichment resolves findings in this order:
+The CIS scanner generates a raw compartment inventory file, `raw_data_identity_compartments.csv`, as part of the native report output. The loader normalizes that CIS output and resolves product ownership in this order:
 
 1. Explicit product mapping override in ADB, when configured.
-2. Product tag on the finding compartment or nearest tagged parent compartment.
-3. Resource-level product tag, when present in the CIS source data.
-4. Unmapped fallback for audit visibility.
+2. `Operations.ProductId` on the finding compartment.
+3. `Operations.ProductId` on the nearest tagged parent compartment.
+4. Resource-level product tag, when present in the CIS source data.
+5. Unmapped fallback for audit visibility.
 
-A child compartment can override a parent product tag by setting its own `Operations.ProductId`. If no child tag exists, findings inherit the nearest tagged ancestor. After changing product tags, run a new scan so the next run captures the updated compartment/tag snapshot and APEX product scorecards reflect the change.
+A child compartment can override a parent product tag by setting its own `Operations.ProductId`. If no child tag exists, findings inherit the nearest tagged ancestor. After changing product tags, run a new scan so the next run captures the updated compartment/tag snapshot and APEX Product Scorecard reflects the change.
 
 ## Trigger a scan
 
