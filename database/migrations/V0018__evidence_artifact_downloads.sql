@@ -37,11 +37,11 @@ SELECT
     artifact.size_bytes,
     artifact.status,
     CASE
-        WHEN LOWER(artifact.source_path) LIKE '%_cis_summary_report.html'
+        WHEN (LOWER(artifact.source_path) LIKE '%_cis_summary_report.html' OR LOWER(artifact.source_path) LIKE '%/cis_summary_report.html')
             THEN 'NATIVE_HTML_SUMMARY'
-        WHEN LOWER(artifact.source_path) LIKE '%_cis_summary_report.csv'
+        WHEN (LOWER(artifact.source_path) LIKE '%_cis_summary_report.csv' OR LOWER(artifact.source_path) LIKE '%/cis_summary_report.csv')
             THEN 'NATIVE_SUMMARY_CSV'
-        WHEN LOWER(artifact.source_path) LIKE '%_error_report.csv'
+        WHEN (LOWER(artifact.source_path) LIKE '%_error_report.csv' OR LOWER(artifact.source_path) LIKE '%/error_report.csv')
             THEN 'NATIVE_ERROR_CSV'
         WHEN LOWER(artifact.source_path) LIKE '%.csv'
             THEN 'NATIVE_DETAIL_CSV'

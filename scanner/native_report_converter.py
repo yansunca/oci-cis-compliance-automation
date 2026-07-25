@@ -115,9 +115,9 @@ def convert_native_report_run(
 
     try:
         copied_files = _copy_native_files(native_report_dir, layout)
-        summary_path = _find_required(copied_files, pattern=r"_cis_summary_report\.csv$")
-        error_path = _find_optional(copied_files, pattern=r"_error_report\.csv$")
-        html_path = _find_optional(copied_files, pattern=r"_cis_summary_report\.html$")
+        summary_path = _find_required(copied_files, pattern=r"(?:^|_)cis_summary_report\.csv$")
+        error_path = _find_optional(copied_files, pattern=r"(?:^|_)error_report\.csv$")
+        html_path = _find_optional(copied_files, pattern=r"(?:^|_)cis_summary_report\.html$")
         summary_rows = _read_summary_rows(summary_path)
         summary_by_control = {
             row.recommendation: row for row in summary_rows if row.recommendation
@@ -729,9 +729,9 @@ def _detail_csvs(paths: list[Path]) -> list[Path]:
         path
         for path in sorted(paths)
         if path.suffix.lower() == ".csv"
-        and "_cis_" in path.name
-        and "_cis_summary_report" not in path.name
-        and "_error_report" not in path.name
+        and (path.name.startswith("cis_") or "_cis_" in path.name)
+        and "cis_summary_report" not in path.name
+        and "error_report" not in path.name
     ]
 
 
@@ -744,7 +744,7 @@ def _category(path: Path) -> str:
         return "METADATA"
     if path.suffix.lower() in {".png", ".jpg", ".jpeg"}:
         return "REPORT"
-    if "_cis_" in path.name and path.suffix.lower() == ".csv":
+    if (path.name.startswith("cis_") or "_cis_" in path.name) and path.suffix.lower() == ".csv":
         return "DETAIL"
     return "OTHER"
 
@@ -796,9 +796,12 @@ def _control_hint(path: Path) -> str | None:
 
 
 def _resource_type_from_file(filename: str) -> str:
-    if "_cis_" not in filename:
+    if "_cis_" in filename:
+        middle = filename.split("_cis_", 1)[1].rsplit("_", 1)[0]
+    elif filename.startswith("cis_"):
+        middle = filename.split("cis_", 1)[1].rsplit("_", 1)[0]
+    else:
         return "native-cis-summary"
-    middle = filename.split("_cis_", 1)[1].rsplit("_", 1)[0]
     return re.sub(r"[^a-z0-9]+", "-", middle.lower()).strip("-") or "native-cis-detail"
 
 
@@ -827,7 +830,7 @@ def _regions_from_summary(rows: list[SummaryRow]) -> list[str]:
 def _extract_completed_at(native_report_dir: Path) -> str:
     summary = _find_optional(
         list(native_report_dir.iterdir()),
-        pattern=r"_cis_summary_report\.csv$",
+        pattern=r"(?:^|_)cis_summary_report\.csv$",
     )
     if summary:
         try:

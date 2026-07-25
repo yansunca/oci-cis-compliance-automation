@@ -67,6 +67,23 @@ def upload_report_files(client: Any, namespace: str, bucket: str, run_id: str, r
     return count
 
 
+def resolve_regions(config: dict[str, Any], signer: Any, requested: str) -> str:
+    cleaned = requested.strip()
+    if cleaned.lower() != "all":
+        return cleaned
+
+    identity_client = oci.identity.IdentityClient(config, signer=signer)
+    subscriptions = identity_client.list_region_subscriptions(config["tenancy"]).data
+    regions = [
+        subscription.region_name
+        for subscription in subscriptions
+        if getattr(subscription, "status", "READY") == "READY"
+    ]
+    if not regions:
+        raise RuntimeError("No READY OCI region subscriptions found for CIS_REGIONS=All")
+    return ",".join(sorted(set(regions)))
+
+
 def upload_failure(client: Any, namespace: str, bucket: str, run_id: str, stage: str, error: Exception) -> None:
     put_json(
         client,
@@ -89,6 +106,7 @@ def main() -> None:
     run_id = required("RUN_ID")
     output_bucket = required("OUTPUT_BUCKET")
     report_directory = Path("/tmp") / run_id / "reports"
+    report_directory.mkdir(parents=True, exist_ok=False)
     started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     signer = oci.auth.signers.get_resource_principals_signer()
@@ -102,6 +120,7 @@ def main() -> None:
     stage = "initializing CIS_Report"
 
     try:
+        requested_regions = resolve_regions(config, signer, os.environ.get("CIS_REGIONS", "All"))
         report = CIS_Report(
             config=config,
             signer=signer,
@@ -111,7 +130,7 @@ def main() -> None:
             report_prefix=None,
             report_summary_json=True,
             print_to_screen="False",
-            regions_to_run_in=os.environ.get("CIS_REGIONS", "All"),
+            regions_to_run_in=requested_regions,
             raw_data=as_bool("CIS_INCLUDE_RAW"),
             obp=as_bool("CIS_INCLUDE_OBP"),
             redact_output=as_bool("CIS_REDACT_OUTPUT"),
@@ -137,7 +156,7 @@ def main() -> None:
             "filesPrefix": object_key(run_id, "files"),
             "reportFileCount": file_count,
             "scannerVersion": "3.3.0",
-            "requestedRegions": os.environ.get("CIS_REGIONS", "All"),
+            "requestedRegions": requested_regions,
             "benchmarkLevel": os.environ.get("CIS_LEVEL", "2"),
             "startedAt": started_at,
             "completedAt": completed_at,
