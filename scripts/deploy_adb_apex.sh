@@ -223,6 +223,30 @@ SQL
   run_sql_driver "$driver" "$label"
 }
 
+prepare_apex_overlay() {
+  local overlay_file="$1"
+  local overlay_target="$work_dir/$(basename "$overlay_file")"
+  python3 - "$overlay_file" "$overlay_target" "$APEX_WORKSPACE" "$APEX_APP_ID" "$APEX_APP_SCHEMA" "$APEX_APP_ALIAS" "$APEX_APP_NAME" <<'OVERLAYPY'
+from pathlib import Path
+import sys
+source, target, workspace, app_id, schema, alias, app_name = sys.argv[1:]
+text = Path(source).read_text(encoding="utf-8")
+replacements = {
+    "OCI_CIS_FINDINGS": workspace,
+    "OCI_CIS_APP": schema,
+    "OCI-CIS-FINDINGS-OPERATIONS": alias,
+    "OCI CIS Findings Operations": app_name,
+    "p_default_application_id=>100": f"p_default_application_id=>{app_id}",
+    "p_flow_id => 100": f"p_flow_id => {app_id}",
+    "set_application_id(100)": f"set_application_id({app_id})",
+}
+for old, new in replacements.items():
+    text = text.replace(old, new)
+Path(target).write_text(text, encoding="utf-8")
+OVERLAYPY
+  printf '%s' "$overlay_target"
+}
+
 if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
   echo "Creating or verifying APEX parsing schema ${APEX_APP_SCHEMA}..."
   if [ -z "$APEX_APP_SCHEMA_PASSWORD" ]; then
@@ -373,7 +397,8 @@ SQL
   if [ -n "$APEX_OVERLAY_FILES" ]; then
     for overlay_file in $APEX_OVERLAY_FILES; do
       echo "Applying APEX overlay ${overlay_file}..."
-      run_sql_file "$ADB_USER" "$ADB_PASSWORD" "$overlay_file" "apex_overlay_$(basename "$overlay_file" .sql)"
+      prepared_overlay_file="$(prepare_apex_overlay "$overlay_file")"
+      run_sql_file "$ADB_USER" "$ADB_PASSWORD" "$prepared_overlay_file" "apex_overlay_$(basename "$overlay_file" .sql)"
     done
   fi
 else

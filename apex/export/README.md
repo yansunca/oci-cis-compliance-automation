@@ -27,18 +27,15 @@ The live demo export has been captured from:
   [`page10-work-queue-drill-overlay.sql`](page10-work-queue-drill-overlay.sql)
 - Page 20 read-only Finding Detail overlay:
   [`page20-finding-detail-overlay.sql`](page20-finding-detail-overlay.sql)
+- Page 50 Scan Runs artifact-count overlay:
+  [`page50-scan-runs-artifact-counts-overlay.sql`](page50-scan-runs-artifact-counts-overlay.sql)
+
+Normal deployments should use [`../../scripts/deploy_adb_apex.sh`](../../scripts/deploy_adb_apex.sh). That script imports the base application and applies the required page overlays automatically.
 
 To refresh the export after approved APEX Builder edits:
 
-1. Confirm the app uses only the approved `V_CIS_*` and `VW_*` views.
-2. Apply required overlays after importing or rebuilding the app:
-
-```bash
-sql ADMIN/<password>@cisfindatp_low @page10-work-queue-drill-overlay.sql
-sql ADMIN/<password>@cisfindatp_low @page20-finding-detail-overlay.sql
-```
-
-3. Run from this directory:
+1. Confirm the app uses only the approved `OCI_CIS_APP.V_CIS_*` and `OCI_CIS_APP.VW_*` views.
+2. Run from this directory:
 
 ```bash
 sql ADMIN/<password>@cisfindatp_low @export_apex_app.sql OCI_CIS_FINDINGS 100
@@ -56,7 +53,7 @@ The script calls `APEX_EXPORT.GET_APPLICATION` and writes
   and workflow authorization schemes are intentionally not part of the active APEX package.
 - Page 10 default report is `Open Work`, with priority/risk/age sorting and row highlights for
   high-priority and overdue findings.
-- Page 10 overlay also defines a public `High Priority` saved report; verify it in live metadata
-  after applying the overlay because APEX application export may omit non-default public report
-  variants.
+- Page 10 overlay defines the Work Queue drill link into Page 20.
+- Page 20 overlay exposes CIS recommendation details, native report links, and best-evidence download links.
+- Page 50 overlay exposes native report file counts and indexed artifact counts.
 - Page 20 detail is SQL-backed and filtered by `P20_FINDING_ID`.
