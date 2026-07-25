@@ -1005,7 +1005,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>2100526641005906379
 ,p_plug_display_sequence=>10
 ,p_query_type=>'TABLE'
-,p_query_owner=>'ADMIN'
+,p_query_owner=>'OCI_CIS_APP'
 ,p_query_table=>'V_CIS_DASHBOARD_METRIC_CARDS'
 ,p_include_rowid_column=>false
 ,p_plug_source_type=>'NATIVE_IR'
@@ -1141,7 +1141,7 @@ wwv_flow_imp_page.create_page_plug(
 '    age_days,',
 '    last_observed_run_id,',
 '    apex_detail_key',
-'from admin.v_cis_apex_work_queue'))
+'from oci_cis_app.v_cis_apex_work_queue'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_prn_page_header=>'Findings Work Queue'
 );
@@ -1395,7 +1395,7 @@ wwv_flow_imp_page.create_page_plug(
 '    due_status,',
 '    age_days,',
 '    evidence_locator',
-'from admin.v_cis_apex_finding_detail',
+'from oci_cis_app.v_cis_apex_finding_detail',
 'where finding_id = :P20_FINDING_ID'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_prn_page_header=>'Finding Detail'
@@ -1600,7 +1600,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>2100526641005906379
 ,p_plug_display_sequence=>10
 ,p_query_type=>'TABLE'
-,p_query_owner=>'ADMIN'
+,p_query_owner=>'OCI_CIS_APP'
 ,p_query_table=>'V_CIS_PRODUCT_SCORECARD'
 ,p_include_rowid_column=>false
 ,p_plug_source_type=>'NATIVE_IR'
@@ -1836,7 +1836,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>2100526641005906379
 ,p_plug_display_sequence=>10
 ,p_query_type=>'TABLE'
-,p_query_owner=>'ADMIN'
+,p_query_owner=>'OCI_CIS_APP'
 ,p_query_table=>'V_CIS_MAPPING_QUALITY_DETAIL'
 ,p_include_rowid_column=>false
 ,p_plug_source_type=>'NATIVE_IR'
@@ -2055,7 +2055,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_template=>2100526641005906379
 ,p_plug_display_sequence=>10
 ,p_query_type=>'TABLE'
-,p_query_owner=>'ADMIN'
+,p_query_owner=>'OCI_CIS_APP'
 ,p_query_table=>'V_CIS_SCAN_SUMMARY'
 ,p_include_rowid_column=>false
 ,p_plug_source_type=>'NATIVE_IR'
