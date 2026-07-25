@@ -79,7 +79,12 @@ wwv_flow_imp_page.create_page_plug(
 '    region,',
 '    due_status,',
 '    age_days,',
-'    evidence_locator,',
+'    ''Control '' || control_display_id ||',
+'        '' | Result: '' || coalesce(cis_result, current_state) ||',
+'        '' | Source: '' || coalesce(native_source_file, ''CIS report'') ||',
+'        case when native_source_row is not null then '':'' || native_source_row else '''' end ||',
+'        '' | Open: '' || coalesce(native_best_evidence_download_label, native_detail_csv_download_label, ''CIS evidence'')',
+'        as evidence_locator,',
 '    evidence_summary,',
 '    remediation,',
 '    native_html_summary_link,',
@@ -245,7 +250,9 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_db_column_name=>'EVIDENCE_LOCATOR'
 ,p_display_order=>120
 ,p_column_identifier=>'L'
-,p_column_label=>'Original Report Link'
+,p_column_label=>'CIS Report Evidence'
+,p_column_link=>'#NATIVE_BEST_EVIDENCE_DOWNLOAD_URL#'
+,p_column_linktext=>'#EVIDENCE_LOCATOR#'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'LEFT'
 ,p_use_as_row_header=>'N'
