@@ -148,52 +148,45 @@ Function networking, scanner networking, and ADB/APEX networking are separate ch
 
 For GovCloud or customer-controlled environments, the recommended production posture is: private Function subnet, private scanner subnet with controlled egress, private-endpoint ADB/APEX, mTLS required, private Object Storage bucket, and IAM policies scoped to the deployment compartment plus tenancy read permissions required by the CIS benchmark.
 
-## Private ADB/APEX VPN Access
+## Private ADB/APEX access
 
-When ADB is deployed with `adb_private_endpoint_subnet_id`, the ADB SQL endpoint and APEX URL are private. Users and installers must be on a network path that can route to the VCN and resolve the private ADB DNS name.
+When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. Use whichever customer-approved network pattern provides these two basics:
 
-Customer network requirements:
+- The user or installer can route to the VCN/subnet that contains the ADB private endpoint.
+- The ADB private hostname resolves to the private endpoint IP.
 
-- VPN, FastConnect, peering, bastion, or admin host route to the VCN CIDR that contains the ADB private endpoint.
-- DNS resolution for the private ADB suffix, for example `adb.<region>.oraclecloud.com`.
-- Conditional DNS forwarding from customer/VPN DNS to OCI DNS through an OCI DNS Resolver inbound endpoint in the VCN.
-- DNS security rules that allow UDP/TCP 53 from the customer DNS resolver or VPN DNS path to the OCI inbound resolver endpoint.
-- ADB NSG ingress that allows HTTPS/APEX on TCP 443 from the customer VPN/corporate egress CIDR.
-- ADB NSG ingress that allows SQL*Net/mTLS on TCP 1522 from the host running the SQLcl installer.
+Common patterns are:
 
-This repo can create the OCI-side inbound resolver endpoint when these variables are set:
+- Run the installer and browser from an OCI admin VM inside the VCN.
+- Connect from a laptop through VPN or FastConnect with working private DNS.
+- Use a bastion or jump host for installation, then let users access APEX through the customer's approved private network path.
+
+For APEX, allow HTTPS TCP/443 to the ADB private endpoint from the approved user network. For SQLcl installation, allow SQL*Net/mTLS TCP/1522 from the installer host.
+
+If the customer wants OCI DNS Resolver support, this repo can create an inbound resolver endpoint:
 
 ```hcl
 create_dns_resolver_inbound_endpoint = true
-dns_resolver_endpoint_subnet_id      = "<subnet_reachable_from_vpn_or_dns_resolver>"
+dns_resolver_endpoint_subnet_id      = "<subnet_reachable_from_customer_dns_or_vpn>"
 dns_resolver_endpoint_nsg_id         = "<dns_resolver_nsg_ocid>"
 dns_resolver_allowed_cidrs           = ["<customer_dns_or_vpn_cidr>"]
 ```
 
-After apply, give this output to the VPN/DNS team:
+After apply, provide this output to the customer networking team if they use conditional DNS forwarding:
 
 ```sh
 terraform output dns_resolver_inbound_endpoint_ip
 ```
 
-They must configure conditional forwarding for the private ADB suffix to that IP. Terraform cannot change the customer's corporate/VPN DNS resolver.
-
-Example for an ADB private endpoint label `cis-adb` in `us-ashburn-1`:
-
-```text
-Private ADB hostname: cis-adb.adb.us-ashburn-1.oraclecloud.com
-DNS suffix to forward: adb.us-ashburn-1.oraclecloud.com
-Expected resolution: private IP in the ADB subnet, for example 10.120.30.x
-```
-
-Validate from the laptop or admin host that will open APEX or run SQLcl:
+For private ADB/APEX troubleshooting, check three things in order:
 
 ```sh
-nslookup cis-adb.adb.us-ashburn-1.oraclecloud.com
-curl -vk https://cis-adb.adb.us-ashburn-1.oraclecloud.com/ords/
+nslookup <adb-private-hostname>
+nc -vz <adb-private-hostname> 443
+nc -vz <adb-private-hostname> 1522
 ```
 
-If `nslookup` returns `NXDOMAIN` or a public resolver answer, VPN routing alone is not enough. Fix private DNS forwarding or run the ADB/APEX install from an OCI admin host inside the VCN.
+If DNS fails, fix private DNS or use an OCI admin VM inside the VCN for the install. If DNS works but the ports fail, check routing, subnet security lists, NSGs, and the customer's VPN/FastConnect path.
 
 ## Manual fallback
 
