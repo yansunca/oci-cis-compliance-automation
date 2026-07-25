@@ -268,7 +268,7 @@ APEX_APP_SCHEMA=OCI_CIS_APP \
 scripts/deploy_adb_apex.sh
 ```
 
-The script creates or verifies a locked `OCI_CIS_APP` APEX parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL.
+The script creates or verifies a locked `OCI_CIS_APP` APEX parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL. For private ADB/APEX, use the ADB `connection-urls.apex-url` hostname, which usually ends in `oraclecloudapps.com`, not the database listener hostname that ends in `oraclecloud.com`. Keep the APEX workspace path prefix case exactly as configured, for example `/ords/r/OCI_CIS_FINDINGS/OCI-CIS-FINDINGS-OPERATIONS/home`.
 
 If a customer requires manual APEX workspace governance, set `CREATE_APEX_WORKSPACE=false`.
 

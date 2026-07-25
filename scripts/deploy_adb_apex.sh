@@ -262,8 +262,8 @@ else
   echo "Skipping APEX import because IMPORT_APEX=$IMPORT_APEX"
 fi
 
-workspace_path="$(printf '%s' "$APEX_WORKSPACE" | tr '[:upper:]' '[:lower:]')"
-app_path="$(printf '%s' "$APEX_APP_ALIAS" | tr '[:upper:]' '[:lower:]')"
+workspace_path="$APEX_WORKSPACE"
+app_path="$APEX_APP_ALIAS"
 
 cat <<MSG
 
