@@ -241,7 +241,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
-Private ADB note: if `adb_private_endpoint_subnet_id` is set, the ADB and APEX endpoint is private. Cloud Shell is not inside the customer VCN and normally cannot resolve or reach the private ADB hostname. Run the ADB/APEX install from a host with private network access, such as a laptop on VPN with private DNS working, a bastion/admin host in the VCN, or an approved CI runner in the VCN.
+Private ADB note: if `adb_private_endpoint_subnet_id` is set, the ADB and APEX endpoint is private. Cloud Shell is not inside the customer VCN and normally cannot resolve or reach the private ADB hostname. The recommended install path for private ADB is a small temporary admin VM in the same VCN, reached through OCI Bastion or an approved jump path. Install these tools on the VM: Java 11 or newer, SQLcl, Git, unzip, curl, Python 3.11 or newer, and the ADB wallet zip. OCI CLI is optional on the VM unless the team wants to generate/download the wallet or run Terraform from there. Run `scripts/deploy_adb_apex.sh` on that VM, then stop or terminate the VM after the install. A laptop on VPN is also acceptable when private DNS and TCP 1522 are confirmed working; an approved CI runner in the VCN is the best repeatable production option.
 
 Automated install path after Terraform creates ADB:
 
@@ -302,6 +302,28 @@ sql -cloudconfig <Wallet_CISAUTOMATION.zip> 'ADMIN/<adb_admin_password>@cisautom
 ```
 
 Some APEX first-time setup can still be customer-policy dependent, especially workspace admin users, SSO/password policy, and whether APEX admin APIs are allowed. The automated script handles the standard workspace/parsing-schema path; use `CREATE_APEX_WORKSPACE=false` only when the customer wants those controls performed separately.
+
+
+## Product mapping tags
+
+The APEX product views use the normalized CIS finding compartment plus configured product metadata. For the easiest customer demo and lowest maintenance setup, tag product-owning compartments before running the scanner.
+
+Recommended tag pattern:
+
+```text
+Tag namespace: Operations
+Tag key: ProductId
+Example value: OCI_POC
+```
+
+The loader snapshots compartment metadata from the CIS run and product enrichment resolves findings in this order:
+
+1. Explicit product mapping override in ADB, when configured.
+2. Product tag on the finding compartment or nearest tagged parent compartment.
+3. Resource-level product tag, when present in the CIS source data.
+4. Unmapped fallback for audit visibility.
+
+This means a child compartment can override a parent product tag by setting its own `Operations.ProductId`. If no child tag exists, findings inherit the nearest tagged ancestor so customers do not need to tag every compartment. After changing product tags, run a new scan so the next run captures the updated compartment/tag snapshot and APEX product scorecards reflect the change.
 
 ## Trigger a scan
 

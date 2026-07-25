@@ -161,7 +161,7 @@ SQL
 
 if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
   echo "Creating or verifying locked APEX parsing schema ${APEX_APP_SCHEMA}..."
-  schema_password="OciCisApp-$(date +%s)-A1!"
+  schema_password="OciCisAppA1x$(date +%s)"
   run_sql_inline "
 declare
   l_count number;
@@ -172,10 +172,10 @@ begin
    where username = upper('${APEX_APP_SCHEMA}');
 
   if l_count = 0 then
-    execute immediate 'create user ${APEX_APP_SCHEMA} identified by "${schema_password}" account lock';
-  else
-    execute immediate 'alter user ${APEX_APP_SCHEMA} account lock';
+    execute immediate 'create user ${APEX_APP_SCHEMA} identified by ${schema_password}';
   end if;
+
+  execute immediate 'alter user ${APEX_APP_SCHEMA} account lock';
 end;
 /
 grant create session to ${APEX_APP_SCHEMA};
