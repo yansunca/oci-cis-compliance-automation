@@ -3,6 +3,18 @@ set define off verify off feedback off
 whenever sqlerror exit sql.sqlcode rollback
 
 begin
+    apex_util.set_security_group_id(
+        apex_util.find_security_group_id(p_workspace => 'OCI_CIS_FINDINGS')
+    );
+    apex_application_install.set_workspace('OCI_CIS_FINDINGS');
+    apex_application_install.set_application_id(100);
+    apex_application_install.set_application_alias('OCI-CIS-FINDINGS-OPERATIONS');
+    apex_application_install.set_application_name('OCI CIS Findings Operations');
+    apex_application_install.set_schema('OCI_CIS_APP');
+end;
+/
+
+begin
 wwv_flow_imp.import_begin (
  p_version_yyyy_mm_dd=>'2024.11.30'
 ,p_release=>'24.2.17'
@@ -86,7 +98,7 @@ wwv_flow_imp_page.create_page_plug(
 '    native_source_row,',
 '    scanner_version,',
 '    benchmark_version',
-'from admin.v_cis_apex_finding_detail',
+'from oci_cis_app.v_cis_apex_finding_detail',
 'where finding_id = :P20_FINDING_ID'))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_prn_page_header=>'Finding Detail'

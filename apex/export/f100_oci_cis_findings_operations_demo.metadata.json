@@ -21,7 +21,7 @@
     {
       "pageId": 20,
       "name": "Finding Detail",
-      "source": "ADMIN.V_CIS_APEX_FINDING_DETAIL"
+      "source": "OCI_CIS_APP.V_CIS_APEX_FINDING_DETAIL"
     },
     {
       "pageId": 30,
