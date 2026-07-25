@@ -138,62 +138,32 @@ terraform output dns_resolver_inbound_endpoint_ip
 
 ## ADB and APEX installation
 
-Terraform creates ADB, Function configuration, IAM, Object Storage, and related runtime resources. The database schema and APEX application are installed after ADB is available.
+Terraform creates the ADB and OCI runtime resources. After Terraform finishes, run one installer script to create the database objects and import the APEX app.
 
-Required tools for this step: SQLcl, Java 11 or newer, the ADB wallet zip, and an execution host that can reach the ADB endpoint.
-
-Generate a wallet using a new wallet password:
+Required on the machine running the installer: OCI CLI, SQLcl, Java 11 or newer, and network access to the ADB endpoint. For private ADB/APEX deployments, run this from an approved host or network path that can reach the private endpoint.
 
 ```sh
-oci db autonomous-database generate-wallet \
-  --autonomous-database-id $(terraform output -raw autonomous_database_id) \
-  --password '<new_wallet_password>' \
-  --file ~/Wallet_CISAUTOMATION.zip \
-  --region <region>
-```
+read -s ADB_PASSWORD; export ADB_PASSWORD
+read -s ADB_WALLET_PASSWORD; export ADB_WALLET_PASSWORD
 
-Run the installer:
-
-```sh
-read -s ADB_PASSWORD
-SQL_BIN=${SQL_BIN:-sql} \
-ADB_WALLET_ZIP=~/Wallet_CISAUTOMATION.zip \
-ADB_PASSWORD="$ADB_PASSWORD" \
-ADB_CONNECT_ALIAS=cisautomation_low \
-APEX_WORKSPACE=OCI_CIS_FINDINGS \
-APEX_APP_SCHEMA=OCI_CIS_APP \
-scripts/deploy_adb_apex.sh
-```
-
-APEX login users are customer-controlled. To have the installer create an initial workspace user, pass explicit credentials:
-
-```sh
-read -s ADB_PASSWORD
-read -s APEX_USER_PASSWORD
-SQL_BIN=${SQL_BIN:-sql} \
-ADB_WALLET_ZIP=~/Wallet_CISAUTOMATION.zip \
-ADB_PASSWORD="$ADB_PASSWORD" \
-ADB_CONNECT_ALIAS=cisautomation_low \
-APEX_WORKSPACE=OCI_CIS_FINDINGS \
-APEX_APP_SCHEMA=OCI_CIS_APP \
 CREATE_APEX_USER=true \
 APEX_USERNAME=<initial_apex_user> \
-APEX_USER_PASSWORD="$APEX_USER_PASSWORD" \
-APEX_USER_EMAIL=<user_email> \
-scripts/deploy_adb_apex.sh
+APEX_USER_EMAIL=<initial_user_email> \
+scripts/install_adb_apex_app.sh
 ```
 
-If `CREATE_APEX_USER` is not enabled, create workspace users through the customer's approved APEX administration process.
+The script reads the ADB OCID from Terraform output, generates the ADB wallet under `build/wallet/`, installs the schema migrations, imports the APEX application, applies required page overlays, and optionally creates the initial APEX workspace user. If `CREATE_APEX_USER=true`, the script prompts for the initial APEX user password when `APEX_USER_PASSWORD` is not already set.
 
-The installer creates or verifies the `OCI_CIS_APP` parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, optionally creates a customer-specified APEX workspace user, runs the ADB migration bundle, imports the APEX application, applies the required APEX page overlays, and prints the APEX path.
+Use these overrides only when needed:
 
-Default APEX values:
-
-- Overlay files: Page 10 Work Queue, Page 20 Finding Detail evidence links, and Page 50 Scan Runs artifact counts
-- Workspace: `OCI_CIS_FINDINGS`
-- App ID: `100`
-- App alias: `OCI-CIS-FINDINGS-OPERATIONS`
-- Parsing schema: `OCI_CIS_APP`
+```sh
+REGION=<region> \
+ADB_ID=<autonomous_database_ocid> \
+ADB_CONNECT_ALIAS=cisautomation_low \
+SQL_BIN=/path/to/sql \
+JAVA_HOME=/path/to/jdk \
+scripts/install_adb_apex_app.sh
+```
 
 APEX URL pattern:
 
@@ -201,9 +171,7 @@ APEX URL pattern:
 https://<adb-apex-hostname>/ords/r/oci_cis_findings/oci-cis-findings-operations/login
 ```
 
-For private ADB/APEX, use the ADB `connection-urls.apex-url` hostname, usually ending in `oraclecloudapps.com`.
-
-If APEX workspace creation is managed separately, set `CREATE_APEX_WORKSPACE=false`. If the parsing schema is also managed separately, set `CREATE_APEX_SCHEMA=false`.
+For advanced or DBA-controlled installs, `scripts/deploy_adb_apex.sh` remains available. It supports separately controlling workspace creation, parsing schema creation, APEX user creation, migrations, app import, and page overlays.
 
 ## Product mapping tags
 
