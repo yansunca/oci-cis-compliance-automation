@@ -155,7 +155,7 @@ When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and 
 - Network routing from the installer or user environment to the VCN subnet that contains the ADB private endpoint.
 - DNS resolution of the ADB private hostname to the ADB private endpoint IP address.
 
-For APEX access, allow HTTPS TCP/443 to the ADB private endpoint from approved user networks. For SQLcl installation, allow SQL*Net/mTLS TCP/1522 from the installer host.
+Validate private ADB and APEX connectivity using the customer-approved Oracle Database/ADB networking guidance and enterprise network standards.
 
 When OCI DNS Resolver support is required, this repository can create an inbound resolver endpoint:
 
@@ -172,15 +172,7 @@ After apply, provide this output to the customer networking team if they use con
 terraform output dns_resolver_inbound_endpoint_ip
 ```
 
-For private ADB/APEX troubleshooting, check three things in order:
-
-```sh
-nslookup <adb-private-hostname>
-nc -vz <adb-private-hostname> 443
-nc -vz <adb-private-hostname> 1522
-```
-
-If DNS fails, fix private DNS or use an OCI admin VM inside the VCN for the install. If DNS works but the ports fail, check routing, subnet security lists, NSGs, and the customer's VPN/FastConnect path.
+For private ADB/APEX troubleshooting, validate name resolution and network reachability from the chosen installer and user access paths. Use the customer's approved Oracle Database/ADB networking procedures for detailed checks.
 
 ## Manual fallback
 
@@ -230,7 +222,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
-Private ADB note: if `adb_private_endpoint_subnet_id` is set, the ADB and APEX endpoint is private. Cloud Shell is not inside the customer VCN and normally cannot resolve or reach the private ADB hostname. The recommended install path for private ADB is a small temporary admin VM in the same VCN, reached through OCI Bastion or an approved jump path. Install these tools on the VM: Java 11 or newer, SQLcl, Git, unzip, curl, Python 3.11 or newer, and the ADB wallet zip. OCI CLI is optional on the VM unless the team wants to generate/download the wallet or run Terraform from there. Run `scripts/deploy_adb_apex.sh` on that VM, then stop or terminate the VM after the install. A laptop on VPN is also acceptable when private DNS and TCP 1522 are confirmed working; an approved CI runner in the VCN is the best repeatable production option.
+Private ADB note: if `adb_private_endpoint_subnet_id` is set, the ADB and APEX endpoint is private. Cloud Shell is not inside the customer VCN and normally cannot resolve or reach the private ADB hostname. The recommended install path for private ADB is a small temporary admin VM in the same VCN, reached through OCI Bastion or an approved jump path. Install these tools on the VM: Java 11 or newer, SQLcl, Git, unzip, curl, Python 3.11 or newer, and the ADB wallet zip. OCI CLI is optional on the VM unless the team wants to generate/download the wallet or run Terraform from there. Run `scripts/deploy_adb_apex.sh` on that VM, then stop or terminate the VM after the install. A laptop on VPN is also acceptable when private DNS and ADB connectivity are confirmed working; an approved CI runner in the VCN is the best repeatable production option.
 
 Automated install path after Terraform creates ADB:
 
