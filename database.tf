@@ -19,13 +19,7 @@ resource "oci_kms_vault" "cis" {
   vault_type     = "DEFAULT"
 }
 
-resource "time_sleep" "kms_vault_propagation" {
-  depends_on      = [oci_kms_vault.cis]
-  create_duration = "90s"
-}
-
 resource "oci_kms_key" "cis" {
-  depends_on          = [time_sleep.kms_vault_propagation]
   compartment_id      = var.compartment_id
   display_name        = "${var.name_prefix}-adb-password-key"
   management_endpoint = oci_kms_vault.cis.management_endpoint
