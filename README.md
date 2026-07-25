@@ -268,7 +268,38 @@ APEX_APP_SCHEMA=OCI_CIS_APP \
 scripts/deploy_adb_apex.sh
 ```
 
-The script creates or verifies a locked `OCI_CIS_APP` APEX parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path. If the ADB hostname is known, also set `APEX_BASE_URL=https://<adb-hostname>` to print the full URL. For private ADB/APEX, use the ADB `connection-urls.apex-url` hostname, which usually ends in `oraclecloudapps.com`, not the database listener hostname that ends in `oraclecloud.com`. Keep the APEX workspace path prefix case exactly as configured, for example `/ords/r/OCI_CIS_FINDINGS/OCI-CIS-FINDINGS-OPERATIONS/home`.
+The script creates or verifies a locked `OCI_CIS_APP` APEX parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, builds the ADB migration bundle, runs the migrations with SQLcl, imports `apex/export/f100_oci_cis_findings_operations_demo.sql`, and prints the APEX app path.
+
+For private ADB/APEX, use the ADB `connection-urls.apex-url` hostname, which usually ends in `oraclecloudapps.com`, not the database listener hostname that ends in `oraclecloud.com`. Keep the APEX workspace path prefix case exactly as configured.
+
+For the default deployment, the expected APEX values are:
+
+- Workspace: `OCI_CIS_FINDINGS`
+- App ID: `100`
+- App alias: `OCI-CIS-FINDINGS-OPERATIONS`
+- Parsing schema: `OCI_CIS_APP`
+
+Use this URL pattern first:
+
+```text
+https://<adb-apex-hostname>/ords/r/OCI_CIS_FINDINGS/OCI-CIS-FINDINGS-OPERATIONS/home
+```
+
+You can also try the app-ID form:
+
+```text
+https://<adb-apex-hostname>/ords/r/OCI_CIS_FINDINGS/100/home
+```
+
+If the browser reaches the Oracle Cloud page but returns `404 Not Found`, the host is reachable and the remaining issue is usually the APEX workspace path prefix, application alias, or import status, not DNS or routing. Verify the installed app with:
+
+```sql
+select workspace, application_id, application_name, alias, availability_status
+from apex_applications
+where workspace = 'OCI_CIS_FINDINGS';
+```
+
+If the ADB hostname is known, set `APEX_BASE_URL=https://<adb-apex-hostname>` when running `scripts/deploy_adb_apex.sh` so the script prints the full URL.
 
 If a customer requires manual APEX workspace governance, set `CREATE_APEX_WORKSPACE=false`.
 
@@ -351,3 +382,15 @@ A successful scanner run writes these Object Storage objects:
 ```
 
 The Object Storage event loader receives create-object events for the bucket, ignores ordinary report files, and invokes the ADB SQL loader only when `_SUCCESS` or `_SUCCESS.txt` appears and `run_ready.json` exists.
+
+## Security
+
+This sample creates OCI IAM policies, Functions, Container Instances, Object Storage, and Autonomous Database resources. Review generated Terraform plans before applying them, scope compartments and dynamic groups for the customer environment, and rotate any setup passwords or auth tokens after deployment.
+
+Do not commit wallet files, Terraform state files, API keys, OCIR auth tokens, or customer CIS report outputs.
+
+## License
+
+Copyright (c) 2026 Oracle and/or its affiliates.
+
+Released under the Universal Permissive License, Version 1.0. See [LICENSE.txt](LICENSE.txt).
