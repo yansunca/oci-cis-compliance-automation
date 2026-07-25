@@ -150,20 +150,14 @@ For GovCloud or customer-controlled environments, the recommended production pos
 
 ## Private ADB/APEX access
 
-When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. The customer's IT security and network teams should select the access pattern that aligns with their enterprise standards. The selected pattern must provide:
+When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. The customer's IT security and network teams should select the access model that aligns with their enterprise network and security standards. The selected model must provide:
 
-- Network routing from the user or installer environment to the VCN subnet that contains the ADB private endpoint.
-- DNS resolution of the ADB private hostname to the private endpoint IP address.
+- Network routing from the installer or user environment to the VCN subnet that contains the ADB private endpoint.
+- DNS resolution of the ADB private hostname to the ADB private endpoint IP address.
 
-Some access options are:
+For APEX access, allow HTTPS TCP/443 to the ADB private endpoint from approved user networks. For SQLcl installation, allow SQL*Net/mTLS TCP/1522 from the installer host.
 
-- Running the installer and browser from an OCI admin VM inside the VCN.
-- Connecting from a laptop through VPN or FastConnect with private DNS resolution.
-- Using a bastion or jump host for installation, with APEX user access provided through the customer's approved private network path.
-
-For APEX access, allow HTTPS TCP/443 to the ADB private endpoint from the approved user network. For SQLcl installation, allow SQL*Net/mTLS TCP/1522 from the installer host.
-
-If the customer wants OCI DNS Resolver support, this repo can create an inbound resolver endpoint:
+When OCI DNS Resolver support is required, this repository can create an inbound resolver endpoint:
 
 ```hcl
 create_dns_resolver_inbound_endpoint = true
