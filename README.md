@@ -1,6 +1,8 @@
 # OCI CIS compliance automation
 
-Deployment repository for an OCI CIS Findings Operations proof of concept. The solution uses Oracle APEX to assist CIS findings operations: scan-run review, product/compartment views, finding drill-down, audit evidence links, and operational status checks.
+OCI CIS compliance automation is a reference implementation for running OCI CIS scans and operating on the resulting findings in Oracle Cloud Infrastructure.
+
+It packages a Container Instance scanner, controller Function, Object Storage event loader, ADB SQL loader, Autonomous Database schema, Oracle APEX operations UI, Terraform deployment starter, and supporting automation scripts. The project is intended for OCI cloud engineering teams to evaluate CIS findings operations patterns and adapt them into a customer-specific proof of concept.
 
 This repository is a proof-of-concept reference implementation for evaluation purposes. It is not an Oracle product and is not covered by Oracle support.
 
