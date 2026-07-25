@@ -155,7 +155,7 @@ When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and 
 - Network routing from the user or installer environment to the VCN subnet that contains the ADB private endpoint.
 - DNS resolution of the ADB private hostname to the private endpoint IP address.
 
-Common implementation patterns include:
+Some access options are:
 
 - Running the installer and browser from an OCI admin VM inside the VCN.
 - Connecting from a laptop through VPN or FastConnect with private DNS resolution.
