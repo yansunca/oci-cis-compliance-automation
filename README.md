@@ -1,6 +1,6 @@
 # OCI CIS compliance automation
 
-Code-only deployment repo for an OCI CIS Findings Operations workflow. The solution uses Oracle APEX to assist CIS findings operations: scan-run review, product/compartment views, finding drill-down, audit evidence links, and operational status checks.
+Deployment repository for an OCI CIS Findings Operations proof of concept. The solution uses Oracle APEX to assist CIS findings operations: scan-run review, product/compartment views, finding drill-down, audit evidence links, and operational status checks.
 
 This repository is a proof-of-concept reference implementation for demo and evaluation purposes. It is not an Oracle product and is not covered by Oracle support.
 
