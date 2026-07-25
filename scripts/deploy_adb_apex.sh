@@ -11,6 +11,7 @@ RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
 IMPORT_APEX="${IMPORT_APEX:-true}"
 APEX_WORKSPACE="${APEX_WORKSPACE:-OCI_CIS_FINDINGS}"
 APEX_APP_SCHEMA="${APEX_APP_SCHEMA:-OCI_CIS_APP}"
+APEX_APP_SCHEMA_PASSWORD="${APEX_APP_SCHEMA_PASSWORD:-}"
 CREATE_APEX_SCHEMA="${CREATE_APEX_SCHEMA:-true}"
 CREATE_APEX_WORKSPACE="${CREATE_APEX_WORKSPACE:-true}"
 APEX_APP_ID="${APEX_APP_ID:-100}"
@@ -33,6 +34,7 @@ Common optional environment:
   ADB_USER=ADMIN
   APEX_WORKSPACE=OCI_CIS_FINDINGS
   APEX_APP_SCHEMA=OCI_CIS_APP
+  APEX_APP_SCHEMA_PASSWORD=<optional parsing schema password>
   CREATE_APEX_SCHEMA=true
   CREATE_APEX_WORKSPACE=true
   APEX_APP_ID=100
@@ -128,14 +130,16 @@ run_sql_driver() {
 }
 
 run_sql_file() {
-  local sql_file="$1"
-  local label="$2"
+  local db_user="${1:-$ADB_USER}"
+  local db_password="${2:-$ADB_PASSWORD}"
+  local sql_file="$3"
+  local label="$4"
   local driver="$work_dir/${label}.sql"
   cat >"$driver" <<SQL
 set define off
 set sqlblanklines on
 whenever sqlerror exit sql.sqlcode rollback
-connect ${ADB_USER}/"${ADB_PASSWORD}"@${ADB_CONNECT_ALIAS}
+connect ${db_user}/"${db_password}"@${ADB_CONNECT_ALIAS}
 @${sql_file}
 exit success
 SQL
@@ -144,14 +148,16 @@ SQL
 }
 
 run_sql_inline() {
-  local sql_body="$1"
-  local label="$2"
+  local db_user="${1:-$ADB_USER}"
+  local db_password="${2:-$ADB_PASSWORD}"
+  local sql_body="$3"
+  local label="$4"
   local driver="$work_dir/${label}.sql"
   cat >"$driver" <<SQL
 set define off
 set sqlblanklines on
 whenever sqlerror exit sql.sqlcode rollback
-connect ${ADB_USER}/"${ADB_PASSWORD}"@${ADB_CONNECT_ALIAS}
+connect ${db_user}/"${db_password}"@${ADB_CONNECT_ALIAS}
 ${sql_body}
 exit success
 SQL
@@ -160,9 +166,11 @@ SQL
 }
 
 if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
-  echo "Creating or verifying locked APEX parsing schema ${APEX_APP_SCHEMA}..."
-  schema_password="OciCisAppA1x$(date +%s)"
-  run_sql_inline "
+  echo "Creating or verifying APEX parsing schema ${APEX_APP_SCHEMA}..."
+  if [ -z "$APEX_APP_SCHEMA_PASSWORD" ]; then
+    APEX_APP_SCHEMA_PASSWORD="OciCisAppA1x$(date +%s)"
+  fi
+  run_sql_inline "$ADB_USER" "$ADB_PASSWORD" "
 declare
   l_count number;
 begin
@@ -172,21 +180,26 @@ begin
    where username = upper('${APEX_APP_SCHEMA}');
 
   if l_count = 0 then
-    execute immediate 'create user ${APEX_APP_SCHEMA} identified by ${schema_password}';
+    execute immediate 'create user ${APEX_APP_SCHEMA} identified by "${APEX_APP_SCHEMA_PASSWORD}"';
+  else
+    execute immediate 'alter user ${APEX_APP_SCHEMA} account unlock identified by "${APEX_APP_SCHEMA_PASSWORD}"';
   end if;
-
-  execute immediate 'alter user ${APEX_APP_SCHEMA} account lock';
 end;
 /
-grant create session to ${APEX_APP_SCHEMA};
+grant create session, create table, create view, create sequence, create procedure, create trigger, create type to ${APEX_APP_SCHEMA};
+alter user ${APEX_APP_SCHEMA} quota unlimited on data;
 " "apex_schema"
 else
   echo "Skipping APEX parsing schema setup because CREATE_APEX_SCHEMA=$CREATE_APEX_SCHEMA"
+  if [ "$RUN_MIGRATIONS" = "true" ] && [ -z "$APEX_APP_SCHEMA_PASSWORD" ]; then
+    echo "ERROR: APEX_APP_SCHEMA_PASSWORD is required when RUN_MIGRATIONS=true and CREATE_APEX_SCHEMA=false." >&2
+    exit 2
+  fi
 fi
 
 if [ "$CREATE_APEX_WORKSPACE" = "true" ]; then
   echo "Creating or verifying APEX workspace ${APEX_WORKSPACE}..."
-  run_sql_inline "
+  run_sql_inline "$ADB_USER" "$ADB_PASSWORD" "
 declare
   l_count number;
 begin
@@ -209,7 +222,7 @@ begin
   commit;
 exception
   when others then
-    if sqlcode in (-20001, -20987) then
+    if sqlcode in (-1, -20001, -20987) then
       null;
     else
       raise;
@@ -227,12 +240,12 @@ if [ -n "$APEX_WORKSPACE_SETUP_SQL" ]; then
     exit 2
   fi
   echo "Running customer-provided APEX workspace setup SQL..."
-  run_sql_file "$APEX_WORKSPACE_SETUP_SQL" "workspace_setup"
+  run_sql_file "$ADB_USER" "$ADB_PASSWORD" "$APEX_WORKSPACE_SETUP_SQL" "workspace_setup"
 fi
 
 if [ "$RUN_MIGRATIONS" = "true" ]; then
-  echo "Running ADB migration bundle..."
-  run_sql_file "$ADB_DEPLOY_OUTPUT_DIR/phase3_adb_migration_bundle.sql" "migrations"
+  echo "Running ADB migration bundle as ${APEX_APP_SCHEMA}..."
+  run_sql_file "$APEX_APP_SCHEMA" "$APEX_APP_SCHEMA_PASSWORD" "$ADB_DEPLOY_OUTPUT_DIR/phase3_adb_migration_bundle.sql" "migrations"
 else
   echo "Skipping ADB migrations because RUN_MIGRATIONS=$RUN_MIGRATIONS"
 fi
@@ -260,6 +273,13 @@ SQL
   run_sql_driver "$import_driver" "import_apex"
 else
   echo "Skipping APEX import because IMPORT_APEX=$IMPORT_APEX"
+fi
+
+if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
+  echo "Locking APEX parsing schema ${APEX_APP_SCHEMA}..."
+  run_sql_inline "$ADB_USER" "$ADB_PASSWORD" "
+alter user ${APEX_APP_SCHEMA} account lock;
+" "lock_apex_schema"
 fi
 
 workspace_path="$(printf '%s' "$APEX_WORKSPACE" | tr '[:upper:]' '[:lower:]')"
