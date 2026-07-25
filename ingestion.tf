@@ -32,6 +32,7 @@ resource "oci_functions_function" "adb_sql_loader" {
     OCI_CIS_BENCHMARK_VERSION               = "3.0.0"
     OCI_CIS_REQUESTED_REGIONS               = var.cis_regions
     OCI_CIS_ADB_USER                        = "ADMIN"
+    OCI_CIS_ADB_TARGET_SCHEMA               = "OCI_CIS_APP"
     OCI_CIS_ADB_CONNECT_ALIAS               = local.adb_tns_alias
     OCI_CIS_ADB_PASSWORD_SECRET_OCID        = oci_vault_secret.adb_admin_password.id
     OCI_CIS_ADB_WALLET_PASSWORD_SECRET_OCID = oci_vault_secret.adb_wallet_password.id
