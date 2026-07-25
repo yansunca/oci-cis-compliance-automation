@@ -177,10 +177,10 @@ Default APEX values:
 APEX URL pattern:
 
 ```text
-https://<adb-apex-hostname>/ords/r/OCI_CIS_FINDINGS/OCI-CIS-FINDINGS-OPERATIONS/home
+https://<adb-apex-hostname>/ords/r/oci_cis_findings/oci-cis-findings-operations/login
 ```
 
-For private ADB/APEX, use the ADB `connection-urls.apex-url` hostname, usually ending in `oraclecloudapps.com`, and preserve the exact APEX workspace path prefix case.
+For private ADB/APEX, use the ADB `connection-urls.apex-url` hostname, usually ending in `oraclecloudapps.com`.
 
 If APEX workspace creation is managed separately, set `CREATE_APEX_WORKSPACE=false`. If the parsing schema is also managed separately, set `CREATE_APEX_SCHEMA=false`.
 
