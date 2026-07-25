@@ -237,9 +237,3 @@ The Object Storage event loader receives create-object events for the bucket, ig
 This sample creates OCI IAM policies, Functions, Container Instances, Object Storage, and Autonomous Database resources. Review generated Terraform plans before applying them, scope compartments and dynamic groups for the customer environment, and rotate any setup passwords or auth tokens after deployment.
 
 Do not commit wallet files, Terraform state files, API keys, OCIR auth tokens, or customer CIS report outputs.
-
-## License
-
-Copyright 2026 OCI CIS Compliance Automation contributors.
-
-Licensed under the Apache License, Version 2.0. See [LICENSE.txt](LICENSE.txt).
