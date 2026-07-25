@@ -1,6 +1,6 @@
 # OCI CIS compliance automation
 
-OCI CIS compliance automation is a reference implementation for running OCI CIS scans and operating on the resulting findings in Oracle Cloud Infrastructure.
+OCI CIS compliance automation is a Terraform-deployable reference implementation for running OCI CIS scans in Container Instances, preserving native reports in Object Storage, loading normalized findings into Autonomous Database, and using Oracle APEX for scan review, product/compartment analysis, finding drill-down, and audit evidence links.
 
 It packages a Container Instance scanner, controller Function, Object Storage event loader, ADB SQL loader, Autonomous Database schema, Oracle APEX operations UI, Terraform deployment starter, and supporting automation scripts. The project is intended for OCI cloud engineering teams to evaluate CIS findings operations patterns and adapt them into a customer-specific proof of concept.
 
