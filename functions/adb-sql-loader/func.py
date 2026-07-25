@@ -597,6 +597,23 @@ def run_sql_file(sql_file: Path, paths: LoadPaths, env: Mapping[str, str]) -> di
     return run_sql_file_with_oracledb(sql_file, paths, env)
 
 
+
+def _target_schema(env: Mapping[str, str]) -> str | None:
+    schema = env.get("OCI_CIS_ADB_TARGET_SCHEMA", "OCI_CIS_APP").strip()
+    if not schema:
+        return None
+    if not schema.replace("_", "").isalnum() or not schema[0].isalpha():
+        raise ValueError(f"Invalid OCI_CIS_ADB_TARGET_SCHEMA: {schema!r}")
+    return schema.upper()
+
+
+def _set_target_schema(cursor: object, env: Mapping[str, str]) -> str | None:
+    schema = _target_schema(env)
+    if not schema:
+        return None
+    cursor.execute(f"ALTER SESSION SET CURRENT_SCHEMA = {schema}")
+    return schema
+
 def run_sql_file_with_oracledb(sql_file: Path, paths: LoadPaths, env: Mapping[str, str]) -> dict[str, Any]:
     connect_alias = env.get("OCI_CIS_ADB_CONNECT_ALIAS", DEFAULT_CONNECT_ALIAS)
     statements = list(_iter_executable_sql(sql_file.read_text(encoding="utf-8")))
@@ -612,6 +629,9 @@ def run_sql_file_with_oracledb(sql_file: Path, paths: LoadPaths, env: Mapping[st
 
     with oracledb.connect(**connect_kwargs) as connection:
         with connection.cursor() as cursor:
+            target_schema = _set_target_schema(cursor, env)
+            if target_schema:
+                _emit_log("oracledb_current_schema_set", target_schema=target_schema)
             for statement in statements:
                 normalized = statement.strip().upper()
                 if normalized == "COMMIT":
@@ -629,6 +649,7 @@ def query_run_counts_with_oracledb(run_id: str, paths: LoadPaths, env: Mapping[s
 
     with oracledb.connect(**_oracledb_connect_kwargs(paths, env)) as connection:
         with connection.cursor() as cursor:
+            _set_target_schema(cursor, env)
             cursor.execute(
                 """
                 SELECT run_id, status
@@ -673,6 +694,7 @@ def query_readonly_cleanup_status(paths: LoadPaths, env: Mapping[str, str]) -> d
 
     with oracledb.connect(**_oracledb_connect_kwargs(paths, env)) as connection:
         with connection.cursor() as cursor:
+            _set_target_schema(cursor, env)
             cursor.execute(
                 """
                 SELECT COUNT(*)
@@ -801,7 +823,9 @@ def run_sqlcl_file(sql_file: Path, paths: LoadPaths, env: Mapping[str, str]) -> 
 
     sqlcl_env = os.environ.copy()
     sqlcl_env["TNS_ADMIN"] = paths.wallet_dir.as_posix()
-    stdin = f"connect {user}/{password}@{connect_alias}\n@{sql_file}\nexit\n"
+    target_schema = _target_schema(env)
+    alter_schema = f"alter session set current_schema = {target_schema};\n" if target_schema else ""
+    stdin = f"connect {user}/{password}@{connect_alias}\n{alter_schema}@{sql_file}\nexit\n"
     completed = subprocess.run(
         [sqlcl, "-s", "-L", "/nolog"],
         input=stdin,
