@@ -150,7 +150,7 @@ For GovCloud or customer-controlled environments, the recommended production pos
 
 ## Private ADB/APEX access
 
-When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. Use whichever customer-approved network pattern provides these two basics:
+When ADB is deployed with `adb_private_endpoint_subnet_id`, both SQL access and the APEX URL are private. The customer corporate IT, security, and network teams should choose the approved private access approach for their environment. Use whichever approved pattern provides these two basics:
 
 - The user or installer can route to the VCN/subnet that contains the ADB private endpoint.
 - The ADB private hostname resolves to the private endpoint IP.
