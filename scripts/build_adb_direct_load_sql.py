@@ -91,6 +91,7 @@ def build_sql(run_dir: Path, *, reconcile_absent: bool = True) -> str:
         "whenever sqlerror exit sql.sqlcode rollback",
         "",
         "prompt Cleaning prior load if present",
+        f"DELETE FROM cis_evidence_artifact_cache WHERE run_id = {sql_literal(run_id)};",
         f"DELETE FROM finding_observation WHERE run_id = {sql_literal(run_id)};",
         f"DELETE FROM canonical_finding_stage WHERE run_id = {sql_literal(run_id)};",
         f"DELETE FROM raw_cis_record WHERE run_id = {sql_literal(run_id)};",
