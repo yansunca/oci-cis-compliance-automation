@@ -22,6 +22,7 @@ APEX_APP_ID="${APEX_APP_ID:-100}"
 APEX_APP_ALIAS="${APEX_APP_ALIAS:-OCI-CIS-FINDINGS-OPERATIONS}"
 APEX_APP_NAME="${APEX_APP_NAME:-OCI CIS Findings Operations}"
 APEX_EXPORT_FILE="${APEX_EXPORT_FILE:-apex/export/f100_oci_cis_findings_operations_demo.sql}"
+APEX_OVERLAY_FILES="${APEX_OVERLAY_FILES:-apex/export/page10-work-queue-drill-overlay.sql apex/export/page20-finding-detail-overlay.sql apex/export/page50-scan-runs-artifact-counts-overlay.sql}"
 APEX_WORKSPACE_SETUP_SQL="${APEX_WORKSPACE_SETUP_SQL:-}"
 APEX_BASE_URL="${APEX_BASE_URL:-}"
 
@@ -47,6 +48,7 @@ Common optional environment:
   APEX_USER_EMAIL=<optional APEX user email>
   APEX_APP_ID=100
   APEX_APP_ALIAS=OCI-CIS-FINDINGS-OPERATIONS
+  APEX_OVERLAY_FILES="apex/export/page10-work-queue-drill-overlay.sql apex/export/page20-finding-detail-overlay.sql apex/export/page50-scan-runs-artifact-counts-overlay.sql"
   APEX_WORKSPACE_SETUP_SQL=/path/to/customer-approved-workspace-setup.sql
   APEX_BASE_URL=https://<adb-hostname>.oraclecloudapps.com
 
@@ -146,6 +148,15 @@ fi
 if [ ! -f "$APEX_EXPORT_FILE" ]; then
   echo "ERROR: APEX export file not found: $APEX_EXPORT_FILE" >&2
   exit 2
+fi
+
+if [ -n "$APEX_OVERLAY_FILES" ]; then
+  for overlay_file in $APEX_OVERLAY_FILES; do
+    if [ ! -f "$overlay_file" ]; then
+      echo "ERROR: APEX overlay file not found: $overlay_file" >&2
+      exit 2
+    fi
+  done
 fi
 
 mkdir -p "$ADB_DEPLOY_OUTPUT_DIR"
@@ -358,6 +369,13 @@ exit success
 SQL
   chmod 600 "$import_driver"
   run_sql_driver "$import_driver" "import_apex"
+
+  if [ -n "$APEX_OVERLAY_FILES" ]; then
+    for overlay_file in $APEX_OVERLAY_FILES; do
+      echo "Applying APEX overlay ${overlay_file}..."
+      run_sql_file "$ADB_USER" "$ADB_PASSWORD" "$overlay_file" "apex_overlay_$(basename "$overlay_file" .sql)"
+    done
+  fi
 else
   echo "Skipping APEX import because IMPORT_APEX=$IMPORT_APEX"
 fi

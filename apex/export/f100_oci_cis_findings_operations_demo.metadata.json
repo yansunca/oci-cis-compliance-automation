@@ -11,12 +11,12 @@
     {
       "pageId": 5,
       "name": "Operational Summary",
-      "source": "ADMIN.V_CIS_DASHBOARD_METRIC_CARDS"
+      "source": "OCI_CIS_APP.V_CIS_DASHBOARD_METRIC_CARDS"
     },
     {
       "pageId": 10,
       "name": "Findings Work Queue",
-      "source": "ADMIN.V_CIS_APEX_WORK_QUEUE"
+      "source": "OCI_CIS_APP.V_CIS_APEX_WORK_QUEUE"
     },
     {
       "pageId": 20,
@@ -26,17 +26,17 @@
     {
       "pageId": 30,
       "name": "Product Scorecard",
-      "source": "ADMIN.V_CIS_PRODUCT_SCORECARD"
+      "source": "OCI_CIS_APP.V_CIS_PRODUCT_SCORECARD"
     },
     {
       "pageId": 40,
       "name": "Mapping Quality",
-      "source": "ADMIN.V_CIS_MAPPING_QUALITY_DETAIL"
+      "source": "OCI_CIS_APP.V_CIS_MAPPING_QUALITY_DETAIL"
     },
     {
       "pageId": 50,
       "name": "Scan Runs",
-      "source": "ADMIN.V_CIS_SCAN_SUMMARY"
+      "source": "OCI_CIS_APP.V_CIS_SCAN_SUMMARY"
     }
   ],
   "notes": [

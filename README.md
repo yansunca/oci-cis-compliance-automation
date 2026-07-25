@@ -185,10 +185,11 @@ scripts/deploy_adb_apex.sh
 
 If `CREATE_APEX_USER` is not enabled, create workspace users through the customer's approved APEX administration process.
 
-The installer creates or verifies the `OCI_CIS_APP` parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, optionally creates a customer-specified APEX workspace user, runs the ADB migration bundle, imports the APEX application, and prints the APEX path.
+The installer creates or verifies the `OCI_CIS_APP` parsing schema, creates or verifies the `OCI_CIS_FINDINGS` workspace, optionally creates a customer-specified APEX workspace user, runs the ADB migration bundle, imports the APEX application, applies the required APEX page overlays, and prints the APEX path.
 
 Default APEX values:
 
+- Overlay files: Page 10 Work Queue, Page 20 Finding Detail evidence links, and Page 50 Scan Runs artifact counts
 - Workspace: `OCI_CIS_FINDINGS`
 - App ID: `100`
 - App alias: `OCI-CIS-FINDINGS-OPERATIONS`
