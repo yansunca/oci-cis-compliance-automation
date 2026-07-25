@@ -32,11 +32,11 @@ CREATE OR REPLACE PACKAGE BODY canonical_finding_upsert AS
                 JSON_VALUE(stage.canonical_json, '$.owner' NULL ON ERROR) AS owner,
                 TO_TIMESTAMP_TZ(
                     REPLACE(JSON_VALUE(stage.canonical_json, '$.firstSeenAt'), 'Z', '+00:00'),
-                    'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'
+                    'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'
                 ) AS first_seen_at,
                 TO_TIMESTAMP_TZ(
                     REPLACE(JSON_VALUE(stage.canonical_json, '$.lastSeenAt'), 'Z', '+00:00'),
-                    'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'
+                    'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'
                 ) AS last_seen_at,
                 TO_TIMESTAMP_TZ(
                     REPLACE(
@@ -44,7 +44,7 @@ CREATE OR REPLACE PACKAGE BODY canonical_finding_upsert AS
                         'Z',
                         '+00:00'
                     ),
-                    'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'
+                    'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'
                 ) AS last_state_change_at,
                 TO_TIMESTAMP_TZ(
                     REPLACE(
@@ -52,11 +52,11 @@ CREATE OR REPLACE PACKAGE BODY canonical_finding_upsert AS
                         'Z',
                         '+00:00'
                     ),
-                    'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'
+                    'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'
                 ) AS resolved_at,
                 TO_TIMESTAMP_TZ(
                     REPLACE(JSON_VALUE(stage.canonical_json, '$.dueAt' NULL ON ERROR), 'Z', '+00:00'),
-                    'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'
+                    'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'
                 ) AS due_at,
                 JSON_QUERY(stage.canonical_json, '$.product' RETURNING CLOB NULL ON ERROR)
                     AS product_json,
@@ -174,7 +174,7 @@ CREATE OR REPLACE PACKAGE BODY canonical_finding_upsert AS
             JSON_VALUE(stage.canonical_json, '$.sourceLineage.configurationVersion'),
             TO_TIMESTAMP_TZ(
                 REPLACE(JSON_VALUE(stage.canonical_json, '$.lastSeenAt'), 'Z', '+00:00'),
-                'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'
+                'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'
             ),
             stage.canonical_json
         FROM canonical_finding_stage stage

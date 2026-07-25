@@ -65,7 +65,7 @@ def timestamp_literal(value: Any) -> str:
     if value is None:
         return "NULL"
     text = str(value).replace("Z", "+00:00")
-    return f"TO_TIMESTAMP_TZ({sql_literal(text)}, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM')"
+    return f"TO_TIMESTAMP_TZ({sql_literal(text)}, 'YYYY-MM-DD\"T\"HH24:MI:SS.FFTZH:TZM')"
 
 
 def build_sql(run_dir: Path, *, reconcile_absent: bool = True) -> str:

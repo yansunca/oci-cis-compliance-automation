@@ -324,6 +324,7 @@ def _write_records(
     for path in (landing_path, raw_path, canonical_path, audit_summary_path):
         path.write_text("", encoding="utf-8")
 
+    product_by_compartment = _compartment_product_map(copied_files)
     landing_count = 0
     canonical_count = 0
     controls_with_detail_findings: set[str] = set()
@@ -376,6 +377,7 @@ def _write_records(
                             benchmark_version=benchmark_version,
                             summary=summary,
                             report_links=report_links,
+                            product_by_compartment=product_by_compartment,
                         )
                         canonical_handle.write(json.dumps(finding, sort_keys=True) + "\n")
                         landing_count += 1
@@ -439,6 +441,7 @@ def _write_records(
                             detail_report=None,
                             error_report=error_report,
                         ),
+                        product_by_compartment=product_by_compartment,
                     )
                     canonical_handle.write(json.dumps(finding, sort_keys=True) + "\n")
                     landing_count += 1
@@ -566,6 +569,75 @@ def _summary_landing_record(
     ) | {"sourceProfileId": "native-cis-summary"}
 
 
+
+def _compartment_product_map(copied_files: list[Path]) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    compartment_file = next((path for path in copied_files if path.name == "raw_data_identity_compartments.csv"), None)
+    if compartment_file is None or not compartment_file.exists():
+        return result
+
+    _, rows = _read_csv_dicts(compartment_file)
+    for row in rows:
+        compartment_id = _blank_to_none(row.get("id"))
+        if not compartment_id:
+            continue
+        defined_tags = _parse_tag_dict(row.get("defined_tags"))
+        operations = defined_tags.get("Operations") if isinstance(defined_tags, dict) else None
+        product_id = None
+        if isinstance(operations, dict):
+            product_id = _blank_to_none(operations.get("ProductId"))
+        result[compartment_id] = {
+            "name": _blank_to_none(row.get("name")),
+            "path": f"/{_blank_to_none(row.get('name')) or compartment_id}",
+            "parentOcid": _blank_to_none(row.get("compartment_id")),
+            "productId": product_id,
+            "tagNamespace": "Operations" if product_id else None,
+            "tagKey": "ProductId" if product_id else None,
+            "tagValue": product_id,
+        }
+    return result
+
+
+def _parse_tag_dict(value: Any) -> dict[str, Any]:
+    if not value:
+        return {}
+    if isinstance(value, dict):
+        return value
+    text = str(value).strip()
+    if not text or text == "{}":
+        return {}
+    try:
+        parsed = ast.literal_eval(text)
+    except (SyntaxError, ValueError):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _product_for_compartment(compartment_meta: dict[str, Any]) -> dict[str, Any]:
+    product_id = _blank_to_none(compartment_meta.get("productId"))
+    if not product_id:
+        return {
+            "productId": "UNASSIGNED",
+            "displayName": "Unassigned",
+            "mappingSource": "UNASSIGNED",
+            "sourceCompartmentOcid": None,
+            "tagNamespace": "Operations",
+            "tagKey": "ProductId",
+            "tagValue": None,
+        }
+    return {
+        "productId": product_id,
+        "displayName": product_id,
+        "mappingSource": "COMPARTMENT_TAG",
+        "sourceCompartmentOcid": None,
+        "tagNamespace": compartment_meta.get("tagNamespace") or "Operations",
+        "tagKey": compartment_meta.get("tagKey") or "ProductId",
+        "tagValue": compartment_meta.get("tagValue") or product_id,
+    }
+
 def _canonical_finding(
     *,
     landing_record: dict[str, Any],
@@ -573,12 +645,15 @@ def _canonical_finding(
     benchmark_version: str,
     summary: SummaryRow | None,
     report_links: dict[str, str | None],
+    product_by_compartment: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     payload = landing_record["payload"]
     control_id = str(landing_record.get("controlHint") or "UNKNOWN")
     region = _blank_to_none(payload.get("region")) or _first_region(summary)
     resource_key = _first_present(payload, ("id", "name", "display_name"))
     compartment_id = _first_present(payload, ("compartment_id",)) or tenancy_id
+    compartment_meta = (product_by_compartment or {}).get(compartment_id, {})
+    product = _product_for_compartment(compartment_meta)
     scope_type = "RESOURCE" if resource_key else ("REGION" if region else "TENANCY")
     scope_key = resource_key or region or tenancy_id
     title = summary.title if summary else f"OCI CIS control {control_id}"
@@ -618,11 +693,11 @@ def _canonical_finding(
         else None,
         "compartment": {
             "ocid": compartment_id,
-            "name": compartment_id,
-            "path": f"/{compartment_id}",
-            "parentOcid": None,
+            "name": compartment_meta.get("name") or compartment_id,
+            "path": compartment_meta.get("path") or f"/{compartment_id}",
+            "parentOcid": compartment_meta.get("parentOcid"),
         },
-        "product": None,
+        "product": product,
         "state": "NEW",
         "priority": _priority(summary),
         "riskScore": _risk_score(summary),
