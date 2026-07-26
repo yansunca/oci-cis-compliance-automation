@@ -153,7 +153,7 @@ Function networking, scanner networking, and ADB/APEX networking are configured 
 - Set `assign_public_ip` according to the approved scanner subnet egress design.
 - Set `adb_private_endpoint_subnet_id` to deploy ADB/APEX with private endpoint access.
 
-Before deployment, confirm the target compartment, network path, IAM scope, and CIS scan scope with the tenancy owner. The scanner requires read permissions for the OCI resources covered by the selected CIS benchmark level.
+Terraform creates the dynamic groups and IAM policies used by the scanner. Before applying, confirm the target compartment, network path, IAM scope, and CIS scan scope with the tenancy owner.
 
 ## Private ADB/APEX access
 
