@@ -1,3 +1,13 @@
+output "compartment_id" {
+  description = "Deployment compartment OCID."
+  value       = var.compartment_id
+}
+
+output "region_key" {
+  description = "OCIR region key used by this deployment."
+  value       = var.region_key
+}
+
 output "region" {
   description = "OCI region used by this deployment."
   value       = var.region

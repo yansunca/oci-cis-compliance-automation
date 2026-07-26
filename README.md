@@ -103,18 +103,16 @@ If the repositories already exist and only the images need to be rebuilt, omit `
 For repeatable scanner runs, pin the runner image by digest after pushing it:
 
 ```sh
-oci artifacts container image list \
-  --compartment-id <deployment_compartment_ocid> \
-  --region <region> \
-  --all \
-  --query 'data.items[?"repository-name"==`cis-auto-runner`].{digest:digest,version:version,time:"time-created"}'
+scripts/print_runner_image_digest.sh
 ```
 
-Set the latest tested runner digest in `terraform.tfvars`:
+Set the printed digest URI in `terraform.tfvars`:
 
 ```hcl
-runner_image_uri = "<region-key>.ocir.io/<namespace>/cis-auto-runner@sha256:<digest>"
+runner_image_uri = "<printed_runner_digest_uri>"
 ```
+
+When running the helper outside the Terraform directory, pass `REGION`, `REGION_KEY`, `TENANCY_NAMESPACE`, and `COMPARTMENT_ID`.
 
 Deploy the stack after reviewing the plan:
 
