@@ -115,7 +115,7 @@ Function networking, scanner networking, and ADB/APEX networking are configured 
 - Set `assign_public_ip` according to the approved scanner subnet egress design.
 - Set `adb_private_endpoint_subnet_id` to deploy ADB/APEX with private endpoint access.
 
-For GovCloud or customer-controlled environments, use the customer's approved network, IAM, and data-access standards for the deployment compartment and tenancy read permissions required by the CIS benchmark.
+For customer-controlled deployments, use the customer's approved network, IAM, and data-access standards for the deployment compartment and tenancy read permissions required by the CIS benchmark.
 
 ## Private ADB/APEX access
 
