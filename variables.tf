@@ -70,6 +70,12 @@ variable "loader_image_tag" {
   default     = "v1"
 }
 
+variable "runner_image_uri" {
+  description = "Optional full runner image URI. Use an OCIR digest URI to pin scheduled scans to an immutable image. When empty, the image_tag-based repository URI is used."
+  type        = string
+  default     = ""
+}
+
 variable "container_shape" {
   description = "OCI Container Instance shape used for each CIS scan."
   type        = string

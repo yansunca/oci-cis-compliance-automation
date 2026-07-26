@@ -6,6 +6,8 @@ region_key     = "iad"
 name_prefix                = "cis-auto"
 image_tag                  = "v1"
 loader_image_tag           = "v1"
+# Optional: pin scheduled scans to an immutable runner image digest.
+# runner_image_uri = "iad.ocir.io/<namespace>/cis-auto-runner@sha256:<digest>"
 container_shape            = "CI.Standard.E4.Flex"
 existing_private_subnet_id = "ocid1.subnet.oc1..example"
 

@@ -84,6 +84,24 @@ def resolve_regions(config: dict[str, Any], signer: Any, requested: str) -> str:
     return ",".join(sorted(set(regions)))
 
 
+def upload_started(client: Any, namespace: str, bucket: str, run_id: str, started_at: str) -> None:
+    put_json(
+        client,
+        namespace,
+        bucket,
+        object_key(run_id, "_STARTED"),
+        {
+            "runId": run_id,
+            "status": "STARTED",
+            "bucket": bucket,
+            "namespace": namespace,
+            "startedAt": started_at,
+            "requestedRegions": os.environ.get("CIS_REGIONS", "All"),
+            "benchmarkLevel": os.environ.get("CIS_LEVEL", "2"),
+        },
+    )
+
+
 def upload_failure(client: Any, namespace: str, bucket: str, run_id: str, stage: str, error: Exception) -> None:
     put_json(
         client,
@@ -117,6 +135,8 @@ def main() -> None:
     }
     object_client = oci.object_storage.ObjectStorageClient(config, signer=signer)
     namespace = object_client.get_namespace().data
+    stage = "publishing start marker"
+    upload_started(object_client, namespace, output_bucket, run_id, started_at)
     stage = "initializing CIS_Report"
 
     try:

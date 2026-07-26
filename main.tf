@@ -13,7 +13,7 @@ locals {
   })
 
   controller_image          = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.controller.namespace}/${oci_artifacts_container_repository.controller.display_name}:${var.image_tag}"
-  runner_image              = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.runner.namespace}/${oci_artifacts_container_repository.runner.display_name}:${var.image_tag}"
+  runner_image              = var.runner_image_uri != "" ? var.runner_image_uri : "${var.region_key}.ocir.io/${oci_artifacts_container_repository.runner.namespace}/${oci_artifacts_container_repository.runner.display_name}:${var.image_tag}"
   object_event_loader_image = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.object_event_loader.namespace}/${oci_artifacts_container_repository.object_event_loader.display_name}:${var.loader_image_tag}"
   adb_sql_loader_image      = "${var.region_key}.ocir.io/${oci_artifacts_container_repository.adb_sql_loader.namespace}/${oci_artifacts_container_repository.adb_sql_loader.display_name}:${var.loader_image_tag}"
 }
