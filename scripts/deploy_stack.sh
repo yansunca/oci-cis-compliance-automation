@@ -59,7 +59,7 @@ if [ "$BOOTSTRAP_REPOS" = "true" ]; then
 fi
 
 if [ "$PUSH_IMAGES" = "true" ]; then
-  make push REGION_KEY="$REGION_KEY" TENANCY_NAMESPACE="$TENANCY_NAMESPACE" NAME_PREFIX="$NAME_PREFIX" TAG="$TAG"
+  DOCKER_BUILDKIT=1 make push REGION_KEY="$REGION_KEY" TENANCY_NAMESPACE="$TENANCY_NAMESPACE" NAME_PREFIX="$NAME_PREFIX" TAG="$TAG"
 else
   echo "Skipping image build/push. Set PUSH_IMAGES=true after OCIR repositories exist."
 fi
