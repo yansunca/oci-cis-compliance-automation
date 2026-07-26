@@ -103,16 +103,12 @@ If the repositories already exist and only the images need to be rebuilt, omit `
 For repeatable scanner runs, pin the runner image by digest after pushing it:
 
 ```sh
-scripts/print_runner_image_digest.sh
+scripts/update_runner_image_uri.sh
 ```
 
-Set the printed digest URI in `terraform.tfvars`:
+The script prints and writes `runner_image_uri = "...@sha256:..."` into `terraform.tfvars`. To only print the digest URI, run `scripts/print_runner_image_digest.sh`.
 
-```hcl
-runner_image_uri = "<printed_runner_digest_uri>"
-```
-
-When running the helper outside the Terraform directory, pass `REGION`, `REGION_KEY`, `TENANCY_NAMESPACE`, and `COMPARTMENT_ID`.
+When running either helper outside the Terraform directory, pass `REGION`, `REGION_KEY`, `TENANCY_NAMESPACE`, and `COMPARTMENT_ID`.
 
 Deploy the stack after reviewing the plan:
 
