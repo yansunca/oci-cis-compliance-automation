@@ -55,11 +55,24 @@ This split keeps the Function small while allowing CIS scans to run longer than 
 
 Prerequisites: Terraform/OpenTofu compatible with Terraform `1.5.7+`, OCI CLI credentials, Docker or Podman for image builds, and SQLcl for the ADB/APEX install step.
 
-Create `terraform.tfvars`, log in to OCIR for the target region, then run the deployment phases:
+Deployment order:
+
+1. Copy `terraform.tfvars.example` to `terraform.tfvars` and fill in tenancy values.
+2. Log in to OCIR for the target region.
+3. Create the OCIR repositories.
+4. Build and push the images.
+5. Pin the tested runner image digest in `terraform.tfvars`.
+6. Apply Terraform.
+7. Run the ADB/APEX installer.
+8. Invoke a scan and verify the run in APEX.
+
+Log in to OCIR:
 
 ```sh
 docker login <region-key>.ocir.io
 ```
+
+Use `<tenancy-namespace>/<oci-username>` as the username and an OCI auth token as the password.
 
 Plan only:
 
@@ -167,6 +180,11 @@ Terraform creates the ADB and OCI runtime resources. After Terraform finishes, r
 
 Required on the installer machine: OCI CLI, SQLcl, Java 11 or newer, and access to the ADB endpoint. For private ADB/APEX, run it from an approved network path.
 
+The installer needs two passwords:
+
+- `ADB_PASSWORD` is the ADB `ADMIN` password from `terraform.tfvars`.
+- `ADB_WALLET_PASSWORD` is a new wallet password used when the script downloads the ADB wallet.
+
 ```sh
 read -s ADB_PASSWORD; export ADB_PASSWORD
 read -s ADB_WALLET_PASSWORD; export ADB_WALLET_PASSWORD
@@ -195,6 +213,8 @@ APEX URL pattern:
 ```text
 https://<adb-apex-hostname>/ords/r/oci_cis_findings/oci-cis-findings-operations/login
 ```
+
+Use the ADB Console **Database Actions / APEX** page to confirm the APEX hostname for the deployed database.
 
 For advanced or DBA-controlled installs, `scripts/deploy_adb_apex.sh` remains available. It supports separately controlling workspace creation, parsing schema creation, APEX user creation, migrations, app import, and page overlays.
 
