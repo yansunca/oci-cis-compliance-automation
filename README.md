@@ -85,7 +85,7 @@ APPLY=false \
 scripts/deploy_stack.sh
 ```
 
-Create OCIR repositories:
+Create OCIR repositories. This phase intentionally runs a targeted Terraform apply for only the image repositories:
 
 ```sh
 REGION_KEY=<region-key> \

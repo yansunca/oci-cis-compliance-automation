@@ -75,5 +75,5 @@ python3 scripts/build_adb_deploy_package.py --output-dir ./build/adb-deploy
 cat <<MSG
 
 ADB/APEX bundle generated under ./build/adb-deploy.
-After Terraform creates ADB, run scripts/deploy_adb_apex.sh to install the SQL bundle and APEX app.
+After Terraform creates ADB, run scripts/install_adb_apex_app.sh to install the SQL bundle and APEX app.
 MSG
