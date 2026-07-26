@@ -85,7 +85,7 @@ APPLY=false \
 scripts/deploy_stack.sh
 ```
 
-Create OCIR repositories. This phase intentionally runs a targeted Terraform apply for only the image repositories:
+Create OCIR repositories, then build and push images. This command first runs a targeted Terraform apply for only the image repositories, then pushes the images, then prints the full Terraform plan:
 
 ```sh
 REGION_KEY=<region-key> \
@@ -93,21 +93,12 @@ TENANCY_NAMESPACE=<object-storage-namespace> \
 NAME_PREFIX=cis-auto \
 TAG=v1 \
 BOOTSTRAP_REPOS=true \
-APPLY=false \
-scripts/deploy_stack.sh
-```
-
-Build and push images:
-
-```sh
-REGION_KEY=<region-key> \
-TENANCY_NAMESPACE=<object-storage-namespace> \
-NAME_PREFIX=cis-auto \
-TAG=v1 \
 PUSH_IMAGES=true \
 APPLY=false \
 scripts/deploy_stack.sh
 ```
+
+If the repositories already exist and only the images need to be rebuilt, omit `BOOTSTRAP_REPOS=true` and keep `PUSH_IMAGES=true`.
 
 For repeatable scanner runs, pin the runner image by digest after pushing it:
 
