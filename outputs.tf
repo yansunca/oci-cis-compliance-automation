@@ -1,3 +1,8 @@
+output "region" {
+  description = "OCI region used by this deployment."
+  value       = var.region
+}
+
 output "tenancy_namespace" {
   description = "OCIR tenancy namespace; use it when pushing the four images."
   value       = oci_artifacts_container_repository.controller.namespace

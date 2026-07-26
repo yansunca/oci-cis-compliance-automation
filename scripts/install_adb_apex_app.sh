@@ -11,7 +11,7 @@ if ! command -v "$TF_BIN" >/dev/null 2>&1; then
   fi
 fi
 
-REGION="${REGION:-$(terraform output -raw region 2>/dev/null || true)}"
+REGION="${REGION:-$($TF_BIN output -raw region 2>/dev/null || true)}"
 REGION="${REGION:-us-ashburn-1}"
 ADB_ID="${ADB_ID:-$($TF_BIN output -raw autonomous_database_id 2>/dev/null || true)}"
 ADB_NAME="${ADB_NAME:-CISAUTOMATION}"
