@@ -20,6 +20,14 @@ DEFAULT_OUTPUT_DIR = Path("/tmp/oci-cis-adb-deploy")
 BUNDLE_NAME = "phase3_adb_migration_bundle.sql"
 MANIFEST_NAME = "phase3_adb_deploy_manifest.json"
 README_NAME = "README.md"
+REQUIRED_APEX_MIGRATIONS = {
+    "V0012__apex_work_queue_view.sql",
+    "V0018__evidence_artifact_downloads.sql",
+    "V0019__scan_run_artifact_counts.sql",
+    "V0023__apex_dashboard_scorecard_mapping_views.sql",
+    "V0024__finding_detail_visible_cis_evidence.sql",
+    "V0025__fix_admin_evidence_artifact_handler.sql",
+}
 
 
 def sha256_file(path: Path) -> str:
@@ -117,6 +125,12 @@ def build_package(output_dir: Path, migrations_dir: Path = MIGRATIONS) -> dict[s
     migrations = ordered_migrations(migrations_dir)
     if not migrations:
         raise ValueError(f"no migrations found under {migrations_dir}")
+
+    migration_names = {migration.name for migration in migrations}
+    missing_apex_migrations = sorted(REQUIRED_APEX_MIGRATIONS - migration_names)
+    if missing_apex_migrations:
+        missing = ", ".join(missing_apex_migrations)
+        raise ValueError(f"missing required APEX support migrations: {missing}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     bundle_path = output_dir / BUNDLE_NAME

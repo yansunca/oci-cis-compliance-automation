@@ -123,6 +123,8 @@ scripts/deploy_stack.sh
 
 The default image platform is `linux/amd64` and the default scanner shape is `CI.Standard.E4.Flex`. Use a compatible builder for the selected platform. To use ARM/A1, set `container_shape = "CI.Standard.A1.Flex"` and build with `RUNNER_PLATFORM=linux/arm64`.
 
+If the local workstation cannot build the target image platform reliably, use a temporary OCI VM in the target tenancy. The VM only needs OCI CLI, Docker or Podman, git, and network access to OCIR. Clone this repository on the VM, run the same OCIR login and `scripts/deploy_stack.sh` image bootstrap/build commands, push the images, record the runner digest, then terminate the VM. This keeps image builds inside OCI and avoids laptop architecture or corporate network issues.
+
 To check for a new stable upstream CIS script release in CI:
 
 ```sh
@@ -137,6 +139,7 @@ Function networking, scanner networking, and ADB/APEX networking are configured 
 - The scanner uses `scanner_subnet_id` when set, otherwise the Function subnet.
 - Set `assign_public_ip` according to the approved scanner subnet egress design.
 - Set `adb_private_endpoint_subnet_id` to deploy ADB/APEX with private endpoint access.
+- Leave `adb_private_endpoint_subnet_id` unset for a public ADB/APEX endpoint when that is the approved demo or evaluation access model.
 
 Terraform creates the dynamic groups and IAM policies used by the scanner. Before applying, confirm the target compartment, network path, IAM scope, and CIS scan scope with the tenancy owner.
 
@@ -265,6 +268,15 @@ oci fn function invoke \
   --region <region>
 cat /tmp/cis-loader-verify-response.json
 ```
+
+End-to-end validation checklist:
+
+- Controller response returns `status=started`, a timestamped `run_id`, and a Container Instance OCID.
+- The Container Instance reaches `INACTIVE` after the scanner exits.
+- Object Storage contains `<run_id>/_SUCCESS`, `<run_id>/run_ready.json`, and native files under `<run_id>/files/`.
+- APEX **Scan Runs** shows the same run ID as the Object Storage prefix.
+- APEX **Summary**, **Product Scorecard**, **Mapping Quality**, and **Finding Detail** show rows from the latest real CIS run.
+- A Finding Detail evidence link returns a native CIS CSV or HTML report artifact through ORDS.
 
 ## Security
 
