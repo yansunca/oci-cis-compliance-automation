@@ -1,9 +1,9 @@
 -- Fix the ORDS evidence artifact download endpoint.
 --
--- Existing APEX links use /ords/admin/cis-evidence/artifact/:artifact_id.
--- The handler must read the APEX application schema cache explicitly because
--- the ORDS module runs under the ADMIN URL path while evidence rows are loaded
--- into OCI_CIS_APP.
+-- APEX links use the OCI_CIS_APP ORDS schema mapping at
+-- /ords/oci_cis_app/cis-evidence/artifact/:artifact_id. The handler reads
+-- the application schema cache explicitly so report evidence is served from
+-- the same schema where the loader stores it.
 
 whenever sqlerror exit sql.sqlcode rollback
 
