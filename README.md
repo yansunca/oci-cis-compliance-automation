@@ -140,7 +140,7 @@ terraform output dns_resolver_inbound_endpoint_ip
 
 Terraform creates the ADB and OCI runtime resources. After Terraform finishes, run one installer script to create the database objects and import the APEX app.
 
-Required on the machine running the installer: OCI CLI, SQLcl, Java 11 or newer, and network access to the ADB endpoint. For private ADB/APEX deployments, run this from an approved host or network path that can reach the private endpoint.
+Required on the installer machine: OCI CLI, SQLcl, Java 11 or newer, and access to the ADB endpoint. For private ADB/APEX, run it from an approved network path.
 
 ```sh
 read -s ADB_PASSWORD; export ADB_PASSWORD
