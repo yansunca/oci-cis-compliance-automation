@@ -32,6 +32,15 @@ scan runs, product views, finding detail, audit links"]
 
 The scanner runs Oracle's `cis_reports.py` from the [OCI Landing Zones CIS quickstart](https://github.com/oci-landing-zones/oci-cis-landingzone-quickstart), preserves the native CIS CSV/HTML/JSON report artifacts in Object Storage, and writes each completed scan run to Object Storage using this layout: `<run_id>/files/*`, `<run_id>/run_ready.json`, and `<run_id>/_SUCCESS`. The event and SQL loader Functions then normalize the completed run into the ADB canonical CIS findings model, enrich it for product/compartment operations, and keep links back to the original report files so APEX can support operational review and audit evidence from the same source run.
 
+## Controller and runner
+
+The controller Function and scanner runner are intentionally separate:
+
+- The controller Function is short-lived. It creates a run ID, checks for an active run, and starts one Container Instance.
+- The runner container is the long-running scanner. It executes `cis_reports.py`, writes native report files, and publishes completion markers.
+
+This split keeps the Function small while allowing CIS scans to run longer than a normal request/response workflow. The controller should point to a digest-pinned runner image so scheduled and on-demand scans use the exact scanner image that was tested.
+
 ## Contents
 
 - `container/` - Container Instance scanner image.
@@ -85,6 +94,22 @@ TAG=v1 \
 PUSH_IMAGES=true \
 APPLY=false \
 scripts/deploy_stack.sh
+```
+
+For repeatable scanner runs, pin the runner image by digest after pushing it:
+
+```sh
+oci artifacts container image list \
+  --compartment-id <deployment_compartment_ocid> \
+  --region <region> \
+  --all \
+  --query 'data.items[?"repository-name"==`cis-auto-runner`].{digest:digest,version:version,time:"time-created"}'
+```
+
+Set the latest tested runner digest in `terraform.tfvars`:
+
+```hcl
+runner_image_uri = "<region-key>.ocir.io/<namespace>/cis-auto-runner@sha256:<digest>"
 ```
 
 Deploy the stack after reviewing the plan:
@@ -215,12 +240,26 @@ oci fn function invoke \
 A successful scanner run writes these Object Storage objects:
 
 ```text
+<run_id>/_STARTED
 <run_id>/files/<native CIS report files>
 <run_id>/run_ready.json
 <run_id>/_SUCCESS
 ```
 
+`_STARTED` is diagnostic only. It confirms the Container Instance pulled the image and entered the runner code. `_SUCCESS` plus `run_ready.json` is the completion signal used by the loader.
+
 The Object Storage event loader receives create-object events for the bucket, ignores ordinary report files, and invokes the ADB SQL loader only when `_SUCCESS` or `_SUCCESS.txt` appears and `run_ready.json` exists.
+
+Verify a loaded run:
+
+```sh
+oci fn function invoke \
+  --function-id <adb_sql_loader_function_ocid> \
+  --body '{"mode":"verifyRun","runId":"<run_id>","bucket":"<report_bucket>"}' \
+  --file /tmp/cis-loader-verify-response.json \
+  --region <region>
+cat /tmp/cis-loader-verify-response.json
+```
 
 ## Security
 
