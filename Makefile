@@ -16,7 +16,7 @@ RUNNER_IMAGE := $(REGISTRY)/$(NAME_PREFIX)-runner:$(TAG)
 OBJECT_EVENT_LOADER_IMAGE := $(REGISTRY)/$(NAME_PREFIX)-object-event-loader:$(TAG)
 ADB_SQL_LOADER_IMAGE := $(REGISTRY)/$(NAME_PREFIX)-adb-sql-loader:$(TAG)
 
-.PHONY: build push print-images
+.PHONY: build push build-runner push-runner print-images
 
 build:
 	docker build --platform $(CONTROLLER_PLATFORM) -t $(CONTROLLER_IMAGE) functions/controller
@@ -29,6 +29,12 @@ push: build
 	docker push $(RUNNER_IMAGE)
 	docker push $(OBJECT_EVENT_LOADER_IMAGE)
 	docker push $(ADB_SQL_LOADER_IMAGE)
+
+build-runner:
+	docker build --platform $(RUNNER_PLATFORM) -t $(RUNNER_IMAGE) container
+
+push-runner: build-runner
+	docker push $(RUNNER_IMAGE)
 
 print-images:
 	@echo $(CONTROLLER_IMAGE)
