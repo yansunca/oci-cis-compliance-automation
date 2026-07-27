@@ -1,4 +1,5 @@
 REGION_KEY ?= iad
+REGISTRY_HOST ?= $(REGION_KEY).ocir.io
 TENANCY_NAMESPACE ?=
 NAME_PREFIX ?= cis-auto
 TAG ?= v1
@@ -10,7 +11,7 @@ ifeq ($(strip $(TENANCY_NAMESPACE)),)
 $(error TENANCY_NAMESPACE is required, for example: make push REGION_KEY=iad TENANCY_NAMESPACE=mytenancynamespace)
 endif
 
-REGISTRY := $(REGION_KEY).ocir.io/$(TENANCY_NAMESPACE)
+REGISTRY := $(REGISTRY_HOST)/$(TENANCY_NAMESPACE)
 CONTROLLER_IMAGE := $(REGISTRY)/$(NAME_PREFIX)-controller:$(TAG)
 RUNNER_IMAGE := $(REGISTRY)/$(NAME_PREFIX)-runner:$(TAG)
 OBJECT_EVENT_LOADER_IMAGE := $(REGISTRY)/$(NAME_PREFIX)-object-event-loader:$(TAG)

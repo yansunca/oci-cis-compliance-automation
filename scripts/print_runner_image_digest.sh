@@ -12,6 +12,7 @@ fi
 
 REGION="${REGION:-}"
 REGION_KEY="${REGION_KEY:-}"
+REGISTRY_HOST="${REGISTRY_HOST:-}"
 TENANCY_NAMESPACE="${TENANCY_NAMESPACE:-}"
 NAME_PREFIX="${NAME_PREFIX:-cis-auto}"
 TAG="${TAG:-v1}"
@@ -20,12 +21,14 @@ COMPARTMENT_ID="${COMPARTMENT_ID:-}"
 if [ -n "$TF_BIN" ]; then
   REGION="${REGION:-$($TF_BIN output -raw region 2>/dev/null || true)}"
   REGION_KEY="${REGION_KEY:-$($TF_BIN output -raw region_key 2>/dev/null || true)}"
+  REGISTRY_HOST="${REGISTRY_HOST:-$($TF_BIN output -raw registry_host 2>/dev/null || true)}"
   TENANCY_NAMESPACE="${TENANCY_NAMESPACE:-$($TF_BIN output -raw tenancy_namespace 2>/dev/null || true)}"
   COMPARTMENT_ID="${COMPARTMENT_ID:-$($TF_BIN output -raw compartment_id 2>/dev/null || true)}"
 fi
 
 : "${REGION:?Set REGION, for example us-ashburn-1}"
 : "${REGION_KEY:?Set REGION_KEY, for example iad}"
+REGISTRY_HOST="${REGISTRY_HOST:-${REGION_KEY}.ocir.io}"
 : "${TENANCY_NAMESPACE:?Set TENANCY_NAMESPACE, your Object Storage/OCIR namespace}"
 : "${COMPARTMENT_ID:?Set COMPARTMENT_ID, or run from a Terraform directory that outputs compartment_id}"
 
@@ -43,4 +46,4 @@ if [ -z "$digest" ] || [ "$digest" = "null" ]; then
   exit 2
 fi
 
-printf '%s.ocir.io/%s/%s@%s\n' "$REGION_KEY" "$TENANCY_NAMESPACE" "$repository_name" "$digest"
+printf '%s/%s/%s@%s\n' "$REGISTRY_HOST" "$TENANCY_NAMESPACE" "$repository_name" "$digest"

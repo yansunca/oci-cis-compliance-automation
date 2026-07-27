@@ -3,6 +3,8 @@ tenancy_ocid   = "ocid1.tenancy.oc1..example"
 compartment_id = "ocid1.compartment.oc1..example"
 region         = "us-ashburn-1"
 region_key     = "iad"
+# Optional. Leave empty/commented for commercial regions. Gov Cloud example:
+# registry_host = "ocir.us-langley-1.oci.oraclegovcloud.com"
 name_prefix                = "cis-auto"
 image_tag                  = "v1"
 loader_image_tag           = "v1"

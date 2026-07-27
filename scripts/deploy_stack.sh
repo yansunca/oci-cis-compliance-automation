@@ -12,6 +12,7 @@ if ! command -v "$TF_BIN" >/dev/null 2>&1; then
 fi
 
 : "${REGION_KEY:?Set REGION_KEY, for example iad}"
+: "${REGISTRY_HOST:=${REGION_KEY}.ocir.io}"
 : "${TENANCY_NAMESPACE:?Set TENANCY_NAMESPACE, your Object Storage/OCIR namespace}"
 : "${NAME_PREFIX:=cis-auto}"
 : "${TAG:=v1}"
@@ -24,6 +25,8 @@ if [ ! -f terraform.tfvars ]; then
   echo "ERROR: terraform.tfvars is missing. Copy terraform.tfvars.example and fill in tenancy values." >&2
   exit 2
 fi
+
+export TF_VAR_registry_host="${TF_VAR_registry_host:-$REGISTRY_HOST}"
 
 if [ "$PUSH_IMAGES" = "true" ]; then
   if ! command -v docker >/dev/null 2>&1; then
@@ -64,7 +67,7 @@ if [ "$BOOTSTRAP_REPOS" = "true" ]; then
 fi
 
 if [ "$PUSH_IMAGES" = "true" ]; then
-  DOCKER_BUILDKIT=1 make push REGION_KEY="$REGION_KEY" TENANCY_NAMESPACE="$TENANCY_NAMESPACE" NAME_PREFIX="$NAME_PREFIX" TAG="$TAG"
+  DOCKER_BUILDKIT=1 make push REGION_KEY="$REGION_KEY" REGISTRY_HOST="$REGISTRY_HOST" TENANCY_NAMESPACE="$TENANCY_NAMESPACE" NAME_PREFIX="$NAME_PREFIX" TAG="$TAG"
 else
   echo "Skipping image build/push. Set PUSH_IMAGES=true after OCIR repositories exist."
 fi

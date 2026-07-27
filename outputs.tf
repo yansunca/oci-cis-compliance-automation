@@ -98,3 +98,8 @@ output "dns_resolver_inbound_endpoint_id" {
   description = "OCID of the optional OCI DNS Resolver inbound endpoint."
   value       = try(oci_dns_resolver_endpoint.private_adb_inbound[0].id, null)
 }
+
+output "registry_host" {
+  description = "OCIR registry host used for image URIs."
+  value       = local.registry_host
+}

@@ -69,15 +69,16 @@ Deployment order:
 Log in to OCIR:
 
 ```sh
-docker login <region-key>.ocir.io
+docker login <registry-host>
 ```
 
-Use `<tenancy-namespace>/<oci-username>` as the username and an OCI auth token as the password.
+Use `<tenancy-namespace>/<oci-username>` as the username and an OCI auth token as the password. For commercial regions, `<registry-host>` is usually `<region-key>.ocir.io`. For Gov Cloud, use the full OCIR host, such as `ocir.us-langley-1.oci.oraclegovcloud.com`.
 
 Plan only:
 
 ```sh
 REGION_KEY=<region-key> \
+REGISTRY_HOST=<registry-host> \
 TENANCY_NAMESPACE=<object-storage-namespace> \
 NAME_PREFIX=cis-auto \
 TAG=v1 \
@@ -89,6 +90,7 @@ Create OCIR repositories, then build and push images. This command first runs a 
 
 ```sh
 REGION_KEY=<region-key> \
+REGISTRY_HOST=<registry-host> \
 TENANCY_NAMESPACE=<object-storage-namespace> \
 NAME_PREFIX=cis-auto \
 TAG=v1 \
@@ -105,6 +107,7 @@ For repeatable scanner runs, pin the runner image by digest after pushing it:
 ```sh
 REGION=<region> \
 REGION_KEY=<region-key> \
+REGISTRY_HOST=<registry-host> \
 TENANCY_NAMESPACE=<object-storage-namespace> \
 COMPARTMENT_ID=<deployment-compartment-ocid> \
 NAME_PREFIX=cis-auto \
@@ -120,6 +123,7 @@ Deploy the stack after reviewing the plan:
 
 ```sh
 REGION_KEY=<region-key> \
+REGISTRY_HOST=<registry-host> \
 TENANCY_NAMESPACE=<object-storage-namespace> \
 NAME_PREFIX=cis-auto \
 TAG=v1 \

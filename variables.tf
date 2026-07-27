@@ -18,6 +18,12 @@ variable "region_key" {
   type        = string
 }
 
+variable "registry_host" {
+  description = "Full OCIR registry host. Leave empty to use <region_key>.ocir.io for commercial regions. Gov Cloud uses hosts such as ocir.us-langley-1.oci.oraclegovcloud.com."
+  type        = string
+  default     = ""
+}
+
 variable "name_prefix" {
   description = "Short, lowercase prefix used in resource names."
   type        = string
