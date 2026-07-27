@@ -17,6 +17,10 @@ LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+def progress(message: str) -> None:
+    print(json.dumps({"runnerProgress": message, "time": datetime.now(UTC).isoformat().replace("+00:00", "Z")}), flush=True)
+
+
 def required(name: str) -> str:
     value = os.environ.get(name)
     if not value:
@@ -127,20 +131,27 @@ def main() -> None:
     report_directory.mkdir(parents=True, exist_ok=False)
     started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
+    progress("creating resource principal signer")
     signer = oci.auth.signers.get_resource_principals_signer()
+    progress("resource principal signer ready")
     config = {
         "region": signer.region,
         "tenancy": signer.tenancy_id,
         "retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY,
     }
     object_client = oci.object_storage.ObjectStorageClient(config, signer=signer)
+    progress("object storage client ready")
     namespace = object_client.get_namespace().data
+    progress("object storage namespace resolved")
     stage = "publishing start marker"
     upload_started(object_client, namespace, output_bucket, run_id, started_at)
+    progress("start marker uploaded")
     stage = "initializing CIS_Report"
 
     try:
+        progress("resolving scan regions")
         requested_regions = resolve_regions(config, signer, os.environ.get("CIS_REGIONS", "All"))
+        progress("scan regions resolved")
         report = CIS_Report(
             config=config,
             signer=signer,
@@ -159,14 +170,18 @@ def main() -> None:
             all_resources=as_bool("CIS_ALL_RESOURCES"),
         )
         stage = "generating CIS reports"
+        progress("generating CIS reports")
         report.generate_reports(int(os.environ.get("CIS_LEVEL", "2")))
+        progress("CIS reports generated")
 
         summary_file = report_directory / "cis_summary_report.json"
         if not summary_file.is_file():
             raise RuntimeError("CIS run did not produce cis_summary_report.json")
 
         stage = "uploading report files"
+        progress("uploading report files")
         file_count = upload_report_files(object_client, namespace, output_bucket, run_id, report_directory)
+        progress("report files uploaded")
         completed_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         ready = {
             "runId": run_id,
@@ -182,6 +197,7 @@ def main() -> None:
             "completedAt": completed_at,
         }
         put_json(object_client, namespace, output_bucket, object_key(run_id, "run_ready.json"), ready)
+        progress("uploading success marker")
         object_client.put_object(
             namespace,
             output_bucket,
@@ -198,6 +214,7 @@ def main() -> None:
         LOG.exception("CIS runner failed during %s", stage)
         raise
 
+    progress("success marker uploaded")
     LOG.info(json.dumps({"status": "uploaded", "bucket": output_bucket, "runId": run_id}))
 
 

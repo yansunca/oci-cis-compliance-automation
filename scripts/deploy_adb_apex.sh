@@ -25,6 +25,7 @@ APEX_EXPORT_FILE="${APEX_EXPORT_FILE:-apex/export/f100_oci_cis_findings_operatio
 APEX_OVERLAY_FILES="${APEX_OVERLAY_FILES:-apex/export/page10-work-queue-drill-overlay.sql apex/export/page20-finding-detail-overlay.sql apex/export/page50-scan-runs-artifact-counts-overlay.sql}"
 APEX_WORKSPACE_SETUP_SQL="${APEX_WORKSPACE_SETUP_SQL:-}"
 APEX_BASE_URL="${APEX_BASE_URL:-}"
+LOCK_APEX_SCHEMA="${LOCK_APEX_SCHEMA:-false}"
 
 usage() {
   cat <<'USAGE'
@@ -51,6 +52,7 @@ Common optional environment:
   APEX_OVERLAY_FILES="apex/export/page10-work-queue-drill-overlay.sql apex/export/page20-finding-detail-overlay.sql apex/export/page50-scan-runs-artifact-counts-overlay.sql"
   APEX_WORKSPACE_SETUP_SQL=/path/to/customer-approved-workspace-setup.sql
   APEX_BASE_URL=https://<adb-hostname>.oraclecloudapps.com
+  LOCK_APEX_SCHEMA=false
 
 Examples:
   ADB_WALLET_ZIP=/secure/Wallet_CISAUTOMATION.zip \
@@ -405,11 +407,13 @@ else
   echo "Skipping APEX import because IMPORT_APEX=$IMPORT_APEX"
 fi
 
-if [ "$CREATE_APEX_SCHEMA" = "true" ]; then
+if [ "$CREATE_APEX_SCHEMA" = "true" ] && [ "$LOCK_APEX_SCHEMA" = "true" ]; then
   echo "Locking APEX parsing schema ${APEX_APP_SCHEMA}..."
   run_sql_inline "$ADB_USER" "$ADB_PASSWORD" "
 alter user ${APEX_APP_SCHEMA} account lock;
 " "lock_apex_schema"
+elif [ "$CREATE_APEX_SCHEMA" = "true" ]; then
+  echo "Leaving APEX/ORDS schema ${APEX_APP_SCHEMA} unlocked so ORDS evidence downloads can run."
 fi
 
 workspace_path="$(printf '%s' "$APEX_WORKSPACE" | tr '[:upper:]' '[:lower:]')"

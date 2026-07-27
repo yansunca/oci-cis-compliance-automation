@@ -102,6 +102,8 @@ def _handler(ctx, data: io.BytesIO = None):
             oci.container_instances.models.CreateContainerDetails(
                 display_name="cis-runner",
                 image_url=_required("CIS_RUNNER_IMAGE"),
+                command=["python"],
+                arguments=["run_cis.py"],
                 environment_variables=container_environment,
                 is_resource_principal_disabled=False,
             )

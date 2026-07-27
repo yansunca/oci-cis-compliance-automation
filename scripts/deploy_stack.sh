@@ -18,6 +18,7 @@ fi
 : "${APPLY:=false}"
 : "${BOOTSTRAP_REPOS:=false}"
 : "${PUSH_IMAGES:=false}"
+: "${SKIP_INIT:=false}"
 
 if [ ! -f terraform.tfvars ]; then
   echo "ERROR: terraform.tfvars is missing. Copy terraform.tfvars.example and fill in tenancy values." >&2
@@ -48,7 +49,11 @@ ERR
   fi
 fi
 
-$TF_BIN init
+if [ "$SKIP_INIT" = "true" ]; then
+  echo "Skipping terraform init because SKIP_INIT=true."
+else
+  $TF_BIN init
+fi
 
 if [ "$BOOTSTRAP_REPOS" = "true" ]; then
   $TF_BIN apply \
