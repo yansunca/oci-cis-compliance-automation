@@ -189,14 +189,15 @@ APEX_USER_EMAIL=<initial_user_email> \
 scripts/install_adb_apex_app.sh
 ```
 
-When run from the Terraform working directory, the script reads the ADB OCID from Terraform output. If running from another approved machine or directory, pass `ADB_ID=<autonomous_database_ocid>` explicitly. The script generates the ADB wallet under `build/wallet/`, installs the schema migrations, imports the APEX application, applies required page overlays, and optionally creates the initial APEX workspace user. If `CREATE_APEX_USER=true`, the script prompts for the initial APEX user password when `APEX_USER_PASSWORD` is not already set. The installer leaves the APEX/ORDS schema unlocked by default because Finding Detail evidence links are served through ORDS.
+When run from the Terraform working directory, the script reads the ADB OCID from Terraform output and derives the wallet name and TNS alias from `adb_db_name` and `adb_service_level` in `terraform.tfvars`. For example, `adb_db_name = "CISNEW"` and `adb_service_level = "LOW"` use `build/wallet/Wallet_CISNEW.zip` and `cisnew_low`. If running from another approved machine or directory, pass `ADB_ID=<autonomous_database_ocid>` and any needed ADB name or alias overrides explicitly. The script generates the ADB wallet under `build/wallet/`, installs the schema migrations, imports the APEX application, applies required page overlays, and optionally creates the initial APEX workspace user. If `CREATE_APEX_USER=true`, the script prompts for the initial APEX user password when `APEX_USER_PASSWORD` is not already set. The installer leaves the APEX/ORDS schema unlocked by default because Finding Detail evidence links are served through ORDS.
 
 Use these overrides only when needed:
 
 ```sh
 REGION=<region> \
 ADB_ID=<autonomous_database_ocid> \
-ADB_CONNECT_ALIAS=cisautomation_low \
+ADB_NAME=<adb_db_name> \
+ADB_CONNECT_ALIAS=<adb_tns_alias> \
 SQL_BIN=/path/to/sql \
 JAVA_HOME=/path/to/jdk \
 scripts/install_adb_apex_app.sh

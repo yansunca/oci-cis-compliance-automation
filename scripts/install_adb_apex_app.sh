@@ -14,8 +14,18 @@ fi
 REGION="${REGION:-$($TF_BIN output -raw region 2>/dev/null || true)}"
 REGION="${REGION:-us-ashburn-1}"
 ADB_ID="${ADB_ID:-$($TF_BIN output -raw autonomous_database_id 2>/dev/null || true)}"
+tfvars_value() {
+  local name="$1"
+  if [ -f terraform.tfvars ]; then
+    awk -F'"' -v key="$name" '$0 ~ "^[[:space:]]*" key "[[:space:]]*=" {print $2; exit}' terraform.tfvars
+  fi
+}
+
+ADB_NAME="${ADB_NAME:-$(tfvars_value adb_db_name)}"
 ADB_NAME="${ADB_NAME:-CISAUTOMATION}"
-ADB_CONNECT_ALIAS="${ADB_CONNECT_ALIAS:-cisautomation_low}"
+ADB_SERVICE_LEVEL="${ADB_SERVICE_LEVEL:-$(tfvars_value adb_service_level)}"
+ADB_SERVICE_LEVEL="${ADB_SERVICE_LEVEL:-LOW}"
+ADB_CONNECT_ALIAS="${ADB_CONNECT_ALIAS:-$(printf '%s_%s' "$ADB_NAME" "$ADB_SERVICE_LEVEL" | tr '[:upper:]' '[:lower:]')}"
 ADB_WALLET_ZIP="${ADB_WALLET_ZIP:-build/wallet/Wallet_${ADB_NAME}.zip}"
 ADB_PASSWORD="${ADB_PASSWORD:-}"
 ADB_WALLET_PASSWORD="${ADB_WALLET_PASSWORD:-}"
@@ -40,8 +50,10 @@ Required environment:
 Optional environment:
   REGION=<oci_region>                         default: Terraform output or us-ashburn-1
   ADB_ID=<autonomous_database_ocid>           default: terraform output autonomous_database_id
-  ADB_CONNECT_ALIAS=cisautomation_low
-  ADB_WALLET_ZIP=build/wallet/Wallet_CISAUTOMATION.zip
+  ADB_NAME=<adb_db_name>                       default: terraform.tfvars adb_db_name or CISAUTOMATION
+  ADB_SERVICE_LEVEL=LOW                        default: terraform.tfvars adb_service_level or LOW
+  ADB_CONNECT_ALIAS=<adb_tns_alias>            default: lower(ADB_NAME_ADB_SERVICE_LEVEL)
+  ADB_WALLET_ZIP=build/wallet/Wallet_<ADB_NAME>.zip
   SQL_BIN=/path/to/sql                        default: auto-detect sql/sqlcl Homebrew cask
   JAVA_HOME=/path/to/jdk                      default: auto-detect Homebrew OpenJDK 17
   CREATE_APEX_USER=true
