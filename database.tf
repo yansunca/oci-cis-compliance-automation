@@ -45,8 +45,13 @@ resource "oci_vault_secret" "adb_admin_password" {
 }
 
 resource "random_password" "adb_wallet" {
-  length  = 32
-  special = false
+  length           = 32
+  special          = true
+  min_upper        = 1
+  min_lower        = 1
+  min_numeric      = 1
+  min_special      = 1
+  override_special = "#%+-_"
 }
 
 resource "oci_database_autonomous_database" "cis" {
