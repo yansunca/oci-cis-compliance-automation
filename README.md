@@ -103,12 +103,18 @@ If the repositories already exist and only the images need to be rebuilt, omit `
 For repeatable scanner runs, pin the runner image by digest after pushing it:
 
 ```sh
+REGION=<region> \
+REGION_KEY=<region-key> \
+TENANCY_NAMESPACE=<object-storage-namespace> \
+COMPARTMENT_ID=<deployment-compartment-ocid> \
+NAME_PREFIX=cis-auto \
+TAG=v1 \
 scripts/update_runner_image_uri.sh
 ```
 
 The script prints and writes `runner_image_uri = "...@sha256:..."` into `terraform.tfvars`. To only print the digest URI, run `scripts/print_runner_image_digest.sh`.
 
-When running either helper outside the Terraform directory, pass `REGION`, `REGION_KEY`, `TENANCY_NAMESPACE`, and `COMPARTMENT_ID`.
+Environment variables set before a single command do not persist for the next command. Pass these values again when running either helper, or export them once in the shell session.
 
 Deploy the stack after reviewing the plan:
 
