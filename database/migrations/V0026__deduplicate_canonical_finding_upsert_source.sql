@@ -1,3 +1,8 @@
+-- Make canonical finding upsert idempotent when one CIS run emits the same
+-- canonical finding from more than one source report row. The canonical table
+-- keeps one current-state row per finding_id; finding_observation keeps the
+-- per-file/per-row audit trail.
+
 -- Canonical finding upsert package skeleton.
 -- This package is the reviewed merge boundary from canonical_finding_stage into
 -- durable finding and observation tables. It is intentionally table-local: no
