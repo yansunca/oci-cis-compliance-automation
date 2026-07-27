@@ -8,6 +8,7 @@ ADB_CONNECT_ALIAS="${ADB_CONNECT_ALIAS:-cisautomation_low}"
 ADB_USER="${ADB_USER:-ADMIN}"
 ADB_PASSWORD="${ADB_PASSWORD:-}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
+MIGRATION_FILE="${MIGRATION_FILE:-}"
 IMPORT_APEX="${IMPORT_APEX:-true}"
 APEX_WORKSPACE="${APEX_WORKSPACE:-OCI_CIS_FINDINGS}"
 APEX_APP_SCHEMA="${APEX_APP_SCHEMA:-OCI_CIS_APP}"
@@ -368,8 +369,17 @@ else
 fi
 
 if [ "$RUN_MIGRATIONS" = "true" ]; then
-  echo "Running ADB migration bundle as ${APEX_APP_SCHEMA}..."
-  run_sql_file "$APEX_APP_SCHEMA" "$APEX_APP_SCHEMA_PASSWORD" "$ADB_DEPLOY_OUTPUT_DIR/phase3_adb_migration_bundle.sql" "migrations"
+  if [ -n "$MIGRATION_FILE" ]; then
+    if [ ! -f "$MIGRATION_FILE" ]; then
+      echo "ERROR: MIGRATION_FILE not found: $MIGRATION_FILE" >&2
+      exit 2
+    fi
+    echo "Running ADB migration file ${MIGRATION_FILE} as ${APEX_APP_SCHEMA}..."
+    run_sql_file "$APEX_APP_SCHEMA" "$APEX_APP_SCHEMA_PASSWORD" "$MIGRATION_FILE" "migration_$(basename "$MIGRATION_FILE" .sql)"
+  else
+    echo "Running ADB migration bundle as ${APEX_APP_SCHEMA}..."
+    run_sql_file "$APEX_APP_SCHEMA" "$APEX_APP_SCHEMA_PASSWORD" "$ADB_DEPLOY_OUTPUT_DIR/phase3_adb_migration_bundle.sql" "migrations"
+  fi
 else
   echo "Skipping ADB migrations because RUN_MIGRATIONS=$RUN_MIGRATIONS"
 fi

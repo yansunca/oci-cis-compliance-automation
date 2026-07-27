@@ -215,6 +215,17 @@ https://<adb-apex-hostname>/ords/r/oci_cis_findings/oci-cis-findings-operations/
 
 Use the ADB Console **Database Actions / APEX** page to confirm the APEX hostname for the deployed database.
 
+For existing ADB deployments, do not replay the full migration bundle. Apply a single migration file when needed:
+
+```sh
+MIGRATION_FILE=database/migrations/V0026__deduplicate_canonical_finding_upsert_source.sql \
+CREATE_APEX_SCHEMA=false \
+CREATE_APEX_WORKSPACE=false \
+CREATE_APEX_USER=false \
+IMPORT_APEX=false \
+scripts/install_adb_apex_app.sh
+```
+
 For advanced or DBA-controlled installs, `scripts/deploy_adb_apex.sh` remains available. It supports separately controlling workspace creation, parsing schema creation, APEX user creation, migrations, app import, and page overlays.
 
 ## Product mapping tags
