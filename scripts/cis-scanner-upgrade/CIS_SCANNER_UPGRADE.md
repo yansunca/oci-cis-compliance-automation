@@ -19,6 +19,33 @@ environment. Confirm compatibility with the dependencies retained in the image.
 
 ## CI/CD setup
 
+### Authentication
+
+Before running the upgrade scripts, configure these steps in your CI/CD job:
+
+1. **OCI CLI authentication:** use your configured OCI identity to read and update
+   the controller Function. Docker login does not authenticate OCI CLI.
+2. **OCIR Docker login:** before the build in step 3, log in using the registry host
+   from `<current-image>`, your registry username, and an OCI Auth Token. Store the
+   token in your CI/CD secret store and supply it through standard input:
+
+   ```text
+   docker login <registry-host> --username <registry-username> --password-stdin
+   ```
+
+   Configure the CI/CD platform to pass the secret token to this command's standard
+   input; the command alone does not retrieve it. Use `<tenancy-namespace>/<username>`
+   as the registry username, or `<tenancy-namespace>/<domain-name>/<username>` where
+   required by your identity setup. Use the OCI Auth Token as the password, not your
+   Console password. The identity must have permission to pull and push the runner
+   repository.
+
+Reuse an existing OCIR login step if it authenticates the Docker client used by the
+build. In a separate or fresh build job, authenticate there too. Neither upgrade
+script performs authentication setup. Do not put the token in source files or logs.
+
+### Pipeline configuration
+
 Configure these once in your CI/CD platform:
 
 | Pipeline responsibility | Required setup |
