@@ -305,3 +305,7 @@ End-to-end validation checklist:
 This sample creates OCI IAM policies, Functions, Container Instances, Object Storage, and Autonomous Database resources. Review generated Terraform plans before applying them, scope compartments and dynamic groups for the customer environment, and rotate any setup passwords or auth tokens after deployment.
 
 Do not commit wallet files, Terraform state files, API keys, OCIR auth tokens, or customer CIS report outputs.
+
+## CIS scanner upgrades
+
+For the controlled CI/CD process to check, build, validate, deploy, and roll back a CIS scanner image upgrade, see [CIS scanner upgrade: CI/CD instructions](scripts/cis-scanner-upgrade/CIS_SCANNER_UPGRADE.md).
