@@ -19,30 +19,104 @@ environment. Confirm compatibility with the dependencies retained in the image.
 
 ## CI/CD setup
 
-### Authentication
+### Prerequisites by script
 
-Before running the upgrade scripts, configure these steps in your CI/CD job:
+| Script | Required tools and authentication | Required inputs |
+| --- | --- | --- |
+| `upgrade_cis_scanner.py` | Python 3.9+, running Docker daemon, OCIR Docker login with pull/push access, builder compatible with the image CPU architecture. No OCI CLI or OCI config required by this script. | Current runner image, release tag (or `latest`), new output directory. |
+| `update_cis_scanner_config.py` | Python 3.9+, authenticated OCI CLI. Preview needs Function read access; apply and rollback also need Function update access. No Docker required. | Build's `upgrade.json`, controller Function OCID, region. |
 
-1. **OCI CLI authentication:** use your configured OCI identity to read and update
-   the controller Function. Docker login does not authenticate OCI CLI.
-2. **OCIR Docker login:** before the build in step 3, log in using the registry host
-   from `<current-image>`, your registry username, and an OCI Auth Token. Store the
-   token in your CI/CD secret store and supply it through standard input:
+The full workflow needs both authentication methods. Neither script sets them up.
+Even the updater's preview calls OCI to read the current Function configuration.
+For separate jobs, give the build job OCIR credentials and pass its `upgrade.json`
+artifact to the deployment job, which receives OCI CLI credentials. The initial
+Function lookup also needs OCI CLI credentials. Configure each job to stop on a
+failed command; never deploy if the build or artifact verification failed.
 
-   ```text
-   docker login <registry-host> --username <registry-username> --password-stdin
-   ```
+### OCI CLI authentication
 
-   Configure the CI/CD platform to pass the secret token to this command's standard
-   input; the command alone does not retrieve it. Use `<tenancy-namespace>/<username>`
-   as the registry username, or `<tenancy-namespace>/<domain-name>/<username>` where
-   required by your identity setup. Use the OCI Auth Token as the password, not your
-   Console password. The identity must have permission to pull and push the runner
-   repository.
+Choose one method for the job:
 
-Reuse an existing OCIR login step if it authenticates the Docker client used by the
-build. In a separate or fresh build job, authenticate there too. Neither upgrade
-script performs authentication setup. Do not put the token in source files or logs.
+- **API key on a CI runner:** provision an OCI user with the required Function
+  permissions and a registered API signing public key. Mount its private key from
+  the CI secret store and create a job-local OCI config file containing a named
+  profile with `user`, `tenancy`, `fingerprint`, `key_file`, and `region`.
+  `key_file` must point to the mounted private key. Restrict both files to the job
+  user (for example, mode `600`) and remove them through job cleanup.
+
+  Example config template (replace placeholders when preparing the job):
+
+  ```ini
+  [CIS_UPGRADE]
+  user=<user-ocid>
+  tenancy=<tenancy-ocid>
+  fingerprint=<api-key-fingerprint>
+  key_file=/absolute/job/path/oci-api-key.pem
+  region=<region>
+  ```
+
+  ```sh
+  export OCI_CLI_AUTH=api_key
+  export OCI_CLI_CONFIG_FILE="/absolute/job/path/oci-config"
+  export OCI_CLI_PROFILE="CIS_UPGRADE"
+  ```
+
+- **Instance principal on an OCI Compute runner:** configure the runner's dynamic
+  group and IAM policy to allow the required Function access, then set
+  `OCI_CLI_AUTH=instance_principal`. This method does not require a user API key
+  or OCI config file.
+
+Use one of these unattended authentication methods for scheduled pipelines.
+Do not depend on browser login or an operator's expiring OCI CLI session.
+
+The updater inherits these environment variables when it invokes OCI CLI.
+Its optional `--profile <name>` overrides `OCI_CLI_PROFILE`; without either,
+OCI CLI uses `DEFAULT`. The updater has no `--auth` or `--config-file` option:
+use the environment variables above for those settings. Always supply its
+required `--region` argument.
+
+See Oracle's [CLI configuration](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliconfigure.htm)
+and [CLI environment variables](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/clienvironmentvariables.htm).
+
+### OCIR Docker authentication
+
+Before step 3, set `OCIR_REGISTRY` to the host from `<current-image>` (for example,
+`iad.ocir.io`) and `OCIR_USERNAME` to `<tenancy-namespace>/<username>`, or
+`<tenancy-namespace>/<domain-name>/<username>` where required by your identity setup.
+Inject `OCIR_AUTH_TOKEN` from a masked CI/CD secret containing that user's OCI Auth
+Token. This is separate from the OCI CLI API signing key and Console password.
+The OCIR user needs pull/push access to the runner repository.
+
+```sh
+set +x
+printf '%s' "${OCIR_AUTH_TOKEN:?Inject the OCIR auth token from CI secrets}" |
+  docker login "${OCIR_REGISTRY:?Set the registry host}" \
+    --username "${OCIR_USERNAME:?Set the registry username}" --password-stdin || exit 1
+unset OCIR_AUTH_TOKEN
+```
+
+Stop the job if login fails. Use the same OS user and Docker credential configuration
+for login and the build. Reauthenticate in a separate or fresh build job. On shared
+runners, isolate Docker credentials per job and clean them up afterward. Never
+commit credentials or include them in logs or artifacts.
+See Oracle's [OCIR login instructions](https://docs.oracle.com/en-us/iaas/Content/Functions/Tasks/functionslogintoocir.htm).
+
+### Preflight checks
+
+Run the applicable checks in the same job environment before running the scripts:
+
+```sh
+python3 --version
+docker info
+oci --version
+oci fn function get --function-id <function-ocid> --region <region> --query 'data.config.CIS_RUNNER_IMAGE' --raw-output
+```
+
+Require Python 3.9 or newer. `docker info` checks daemon access; it does not check
+OCIR authentication or repository permissions. The Function lookup checks OCI
+authentication and read access; it does not prove update permission. Check IAM
+permissions separately. A build-only job can omit the OCI commands when its image
+input is already supplied; an update-only job can omit Docker. Stop on any failure.
 
 ### Pipeline configuration
 
